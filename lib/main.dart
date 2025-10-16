@@ -11,6 +11,8 @@ import 'screens/rider_details_screen.dart';
 import 'screens/timer_start_screen.dart';
 import 'screens/bluetooth_ready_screen.dart';
 import 'screens/bluetooth_failed_screen.dart';
+import 'screens/active_race_screen.dart';
+import 'screens/race_results_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -131,6 +133,34 @@ class MyApp extends StatelessWidget {
               horseId: args['horseId'] as String,
               additionalDetails: args['additionalDetails'] as String,
               errorMessage: args['errorMessage'] as String,
+            ),
+          );
+        } else if (settings.name == ActiveRaceScreen.routeName) {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (_) => ActiveRaceScreen(
+              maxHours: args['maxHours'] as int,
+              maxMinutes: args['maxMinutes'] as int,
+              maxSeconds: args['maxSeconds'] as int,
+              riderName: args['riderName'] as String,
+              eventName: args['eventName'] as String,
+              horseName: args['horseName'] as String,
+              horseId: args['horseId'] as String,
+              additionalDetails: args['additionalDetails'] as String,
+            ),
+          );
+        } else if (settings.name == RaceResultsScreen.routeName) {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (_) => RaceResultsScreen(
+              elapsedSeconds: args['elapsedSeconds'] as int,
+              maxSeconds: args['maxSeconds'] as int,
+              riderName: args['riderName'] as String,
+              eventName: args['eventName'] as String,
+              horseName: args['horseName'] as String,
+              horseId: args['horseId'] as String,
+              additionalDetails: args['additionalDetails'] as String,
+              isSuccess: args['isSuccess'] as bool,
             ),
           );
         }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'bluetooth_ready_screen.dart';
 import 'bluetooth_failed_screen.dart';
+import '../services/bluetooth_service.dart';
 
 class TimerStartScreen extends StatefulWidget {
   const TimerStartScreen({
@@ -46,7 +47,7 @@ class _TimerStartScreenState extends State<TimerStartScreen>
   late AnimationController _glowController;
 
   // Target Bluetooth device name - customize this as needed
-  static const String targetBluetoothDevice = 'IR-Timer-Module';
+  static const String targetBluetoothDevice = 'ESP32-BT-Client';
 
   @override
   void initState() {
@@ -134,40 +135,81 @@ class _TimerStartScreenState extends State<TimerStartScreen>
   }
 
   Future<void> _checkBluetoothConnection() async {
-    // Simulate connection process
-    await Future.delayed(const Duration(seconds: 2));
+    final btService = BluetoothService();
 
-    // Simulate checking for specific Bluetooth device
-    // In a real implementation, you would:
-    // 1. Check if Bluetooth is enabled
-    // 2. Scan for devices
-    // 3. Look for the specific device name (targetBluetoothDevice)
-    // 4. Attempt to connect and send a beacon signal
+    // Request Bluetooth permissions first (Android 12+)
+    bool permissionsGranted = await btService.requestBluetoothPermissions();
+    if (!permissionsGranted) {
+      throw Exception('Bluetooth permissions are required. Please grant permissions in settings.');
+    }
 
-    // Simulate connection attempt (70% success rate for demo - allows testing error screen)
-    // In production, this would involve actual Bluetooth device discovery
-    bool connectionSuccessful = DateTime.now().millisecond % 10 > 2;
+    // Check if Bluetooth is enabled
+    bool isEnabled = await btService.isBluetoothEnabled();
+    if (!isEnabled) {
+      print('🔴 Bluetooth is disabled, requesting to enable...');
+      bool enabled = await btService.requestEnable();
+      if (!enabled) {
+        throw Exception('Bluetooth is not enabled. Please turn on Bluetooth.');
+      }
+    }
 
-    if (connectionSuccessful) {
-      setState(() {
-        _isConnected = true;
-      });
+    print('🔵 Bluetooth is enabled');
 
-      // Send beacon signal to test connection
-      await _sendBeaconSignal();
-
-      // Connection successful - will navigate to ready screen in _startConnection method
-    } else {
+    // Find the target device
+    var device = await btService.findDeviceByName(targetBluetoothDevice);
+    if (device == null) {
       throw Exception(
-        'Device not found. Please ensure the IR-Timer-Module is powered on and within range.',
+        'Device "$targetBluetoothDevice" not found. Please pair it in Bluetooth settings first.',
       );
     }
+
+    // Connect to device
+    bool connected = await btService.connectToDevice(device);
+    if (!connected) {
+      throw Exception('Failed to connect to $targetBluetoothDevice');
+    }
+
+    setState(() {
+      _isConnected = true;
+    });
+
+    // Listen to messages from ESP32
+    btService.messageStream.listen((message) {
+      print('🎯 Message from ESP32: $message');
+      // Handle the message here (e.g., start timer, stop timer, etc.)
+      _handleArduinoMessage(message);
+    });
+
+    // Send a test beacon signal
+    await _sendBeaconSignal();
   }
 
   Future<void> _sendBeaconSignal() async {
-    // Simulate sending beacon signal to verify connection
-    await Future.delayed(const Duration(milliseconds: 500));
-    // In real implementation, send a test signal to the IR module
+    final btService = BluetoothService();
+    bool sent = await btService.sendData('HELLO');
+    if (sent) {
+      print('✅ Beacon signal sent successfully to ESP32');
+    } else {
+      print('❌ Failed to send beacon signal');
+    }
+  }
+
+  void _handleArduinoMessage(String message) {
+    // Handle different messages from ESP32
+    print('🔔 Processing message: $message');
+
+    if (message.contains('START')) {
+      print('▶️ Received START signal from ESP32');
+      // TODO: Start your timer logic here
+    } else if (message.contains('STOP')) {
+      print('⏹️ Received STOP signal from ESP32');
+      // TODO: Stop your timer logic here
+    } else if (message.contains('ACK')) {
+      print('✅ ESP32 acknowledged connection');
+    } else {
+      print('📬 Custom message: $message');
+      // Handle other custom messages
+    }
   }
 
   void _showConnectionError(String error) {
@@ -209,7 +251,7 @@ class _TimerStartScreenState extends State<TimerStartScreen>
         centerTitle: true,
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
@@ -261,15 +303,15 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                 ),
               ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2),
 
-              const Spacer(),
+              const SizedBox(height: 30),
 
               // Instructions
               Text(
                 _isConnected
                     ? 'Hardware Connected - Verifying...'
                     : _isConnecting
-                    ? 'Connecting to IR-Timer-Module...'
-                    : 'Press to connect to infrared timing system',
+                    ? 'Connecting to ESP32-BT-Client...'
+                    : 'Press to connect to ESP32 timing system',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Colors.grey.shade600,
                   fontWeight: FontWeight.w500,
@@ -397,7 +439,7 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                 curve: Curves.elasticOut,
               ),
 
-              const Spacer(),
+              const SizedBox(height: 30),
 
               // Status indicator
               Container(

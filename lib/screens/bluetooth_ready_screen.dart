@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../services/bluetooth_service.dart';
+import 'active_race_screen.dart';
 
-class BluetoothReadyScreen extends StatelessWidget {
+class BluetoothReadyScreen extends StatefulWidget {
   const BluetoothReadyScreen({
     super.key,
     required this.selectedHours,
@@ -32,6 +35,55 @@ class BluetoothReadyScreen extends StatelessWidget {
   final String additionalDetails;
 
   @override
+  State<BluetoothReadyScreen> createState() => _BluetoothReadyScreenState();
+}
+
+class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
+  StreamSubscription? _bluetoothSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _listenForStartSignal();
+  }
+
+  void _listenForStartSignal() {
+    final btService = BluetoothService();
+    _bluetoothSubscription = btService.messageStream.listen((message) {
+      print('📨 Ready screen received: $message');
+
+      if (message.contains('START')) {
+        print('🏁 START signal received - Starting race!');
+        _startRace();
+      }
+    });
+  }
+
+  void _startRace() {
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed(
+        ActiveRaceScreen.routeName,
+        arguments: {
+          'maxHours': widget.maxHours,
+          'maxMinutes': widget.maxMinutes,
+          'maxSeconds': widget.maxSeconds,
+          'riderName': widget.riderName,
+          'eventName': widget.eventName,
+          'horseName': widget.horseName,
+          'horseId': widget.horseId,
+          'additionalDetails': widget.additionalDetails,
+        },
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _bluetoothSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
@@ -49,11 +101,11 @@ class BluetoothReadyScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              const Spacer(),
+              const SizedBox(height: 40),
 
               // Success Animation
               Container(
@@ -160,7 +212,7 @@ class BluetoothReadyScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Bluetooth: IR-Timer-Module',
+                              'Bluetooth: ESP32-BT-Client',
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
                                     color: Colors.blue.shade700,
@@ -176,7 +228,7 @@ class BluetoothReadyScreen extends StatelessWidget {
                   .fadeIn(duration: 600.ms, delay: 400.ms)
                   .slideY(begin: 0.3),
 
-              const Spacer(),
+              const SizedBox(height: 40),
 
               // Rider Info Summary
               Container(
@@ -196,15 +248,15 @@ class BluetoothReadyScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildSummaryRow('Rider', riderName),
-                    _buildSummaryRow('Horse', '$horseName ($horseId)'),
-                    _buildSummaryRow('Event', eventName),
+                    _buildSummaryRow('Rider', widget.riderName),
+                    _buildSummaryRow('Horse', '${widget.horseName} (${widget.horseId})'),
+                    _buildSummaryRow('Event', widget.eventName),
                     _buildSummaryRow(
                       'Time',
                       _formatTime(
-                        selectedHours,
-                        selectedMinutes,
-                        selectedSeconds,
+                        widget.selectedHours,
+                        widget.selectedMinutes,
+                        widget.selectedSeconds,
                       ),
                     ),
                   ],

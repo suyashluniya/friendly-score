@@ -120,7 +120,7 @@ class BluetoothFailedScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Unable to connect to IR-Timer-Module',
+                            'Unable to connect to ESP32-BT-Client',
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   color: Colors.black87,
@@ -145,7 +145,7 @@ class BluetoothFailedScreen extends StatelessWidget {
                           _buildTroubleshootingStep(
                             context,
                             '1.',
-                            'Ensure IR-Timer-Module is powered on',
+                            'Ensure ESP32-BT-Client is powered on',
                             Icons.power_settings_new,
                           ),
 
