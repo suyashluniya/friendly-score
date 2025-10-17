@@ -62,12 +62,8 @@ class _TopScoreJumpingScreenState extends State<TopScoreJumpingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        // title: const Text('Top Score Jumping'),
-        backgroundColor: Colors.grey.shade100,
-        elevation: 0,
-        foregroundColor: Colors.black,
+        title: const Text('Top Score Jumping'),
       ),
       body: SafeArea(
         child: Padding(
@@ -76,33 +72,22 @@ class _TopScoreJumpingScreenState extends State<TopScoreJumpingScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Enter time allowed'.toUpperCase(),
+                'Enter Time Allowed',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 48),
               // Scrollable timer pickers
               Container(
                 height: 220,
-                margin: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                      spreadRadius: 2,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFFE5E7EB),
+                    width: 1.5,
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -167,27 +152,13 @@ class _TopScoreJumpingScreenState extends State<TopScoreJumpingScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 48),
               // Set button
               SizedBox(
                 width: double.infinity,
-                height: 56,
                 child: ElevatedButton(
                   onPressed: _handleSetTimer,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: Text(
-                    'Set',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: const Text('Set Time'),
                 ),
               ),
             ],
@@ -345,11 +316,8 @@ class _ScrollableTimePickerState extends State<_ScrollableTimePicker> {
         const SizedBox(height: 12),
         Text(
           widget.label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Colors.black54,
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
-            letterSpacing: 0.2,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: const Color(0xFF6C757D),
           ),
         ),
         const SizedBox(height: 8),

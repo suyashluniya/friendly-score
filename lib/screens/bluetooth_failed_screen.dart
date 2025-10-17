@@ -36,19 +36,8 @@ class BluetoothFailedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade100,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        title: Text(
-          'Connection Failed',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        centerTitle: true,
+        title: const Text('Connection Failed'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -71,13 +60,13 @@ class BluetoothFailedScreen extends StatelessWidget {
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
-                        color: Colors.red.shade100,
+                        color: const Color(0xFFEF4444).withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.bluetooth_disabled,
-                        color: Colors.red.shade600,
-                        size: 60,
+                        color: Color(0xFFEF4444),
+                        size: 64,
                       ),
                     )
                     .animate()
@@ -92,7 +81,7 @@ class BluetoothFailedScreen extends StatelessWidget {
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Colors.red.shade700,
+                            color: const Color(0xFFEF4444),
                           ),
                       textAlign: TextAlign.center,
                     )
@@ -100,21 +89,18 @@ class BluetoothFailedScreen extends StatelessWidget {
                     .fadeIn(duration: 600.ms, delay: 200.ms)
                     .slideY(begin: 0.2),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
                 // Error Details Card
                 Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 15,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFFE5E7EB),
+                          width: 1.5,
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,31 +170,10 @@ class BluetoothFailedScreen extends StatelessWidget {
                     // Retry Button
                     SizedBox(
                           width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton(
+                          child: ElevatedButton.icon(
                             onPressed: () => _retryConnection(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade600,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.refresh, color: Colors.white),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Retry Connection',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                ),
-                              ],
-                            ),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry Connection'),
                           ),
                         )
                         .animate()
@@ -220,34 +185,10 @@ class BluetoothFailedScreen extends StatelessWidget {
                     // Settings Button
                     SizedBox(
                           width: double.infinity,
-                          height: 56,
-                          child: OutlinedButton(
+                          child: OutlinedButton.icon(
                             onPressed: () => _openBluetoothSettings(context),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.grey.shade700,
-                              side: BorderSide(color: Colors.grey.shade400),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.settings,
-                                  color: Colors.grey.shade700,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Open Bluetooth Settings',
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey.shade700,
-                                      ),
-                                ),
-                              ],
-                            ),
+                            icon: const Icon(Icons.settings_outlined),
+                            label: const Text('Open Bluetooth Settings'),
                           ),
                         )
                         .animate()
@@ -280,7 +221,7 @@ class BluetoothFailedScreen extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: Colors.blue.shade100,
+              color: const Color(0xFF0066FF).withOpacity(0.1),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Center(
@@ -288,13 +229,13 @@ class BluetoothFailedScreen extends StatelessWidget {
                 number,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade700,
+                  color: const Color(0xFF0066FF),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 12),
-          Icon(icon, size: 20, color: Colors.grey.shade600),
+          Icon(icon, size: 20, color: const Color(0xFF6C757D)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -318,14 +259,11 @@ class BluetoothFailedScreen extends StatelessWidget {
   void _openBluetoothSettings(BuildContext context) {
     // In a real app, this would open device Bluetooth settings
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
+      const SnackBar(
+        content: Text(
           'This would open device Bluetooth settings in a real app',
         ),
-        backgroundColor: Colors.blue.shade600,
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

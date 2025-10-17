@@ -35,8 +35,9 @@ class ActiveRaceScreen extends StatefulWidget {
 class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     with TickerProviderStateMixin {
   late Timer _timer;
-  late int _totalSeconds;
-  late int _remainingSeconds;
+  late int _maxTimeSeconds; // Maximum time (the doubled value)
+  late int _timeAllowedSeconds; // Time allowed (half of max)
+  late int _elapsedSeconds;
   late DateTime _startTime;
   late AnimationController _pulseController;
   StreamSubscription? _bluetoothSubscription;
@@ -45,11 +46,15 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   void initState() {
     super.initState();
 
-    // Calculate total seconds for countdown
-    _totalSeconds = (widget.maxHours * 3600) +
-                    (widget.maxMinutes * 60) +
-                    widget.maxSeconds;
-    _remainingSeconds = _totalSeconds;
+    // The widget receives the MAXIMUM time (already doubled)
+    _maxTimeSeconds = (widget.maxHours * 3600) +
+                      (widget.maxMinutes * 60) +
+                      widget.maxSeconds;
+
+    // Time allowed is half of the maximum time
+    _timeAllowedSeconds = _maxTimeSeconds ~/ 2;
+
+    _elapsedSeconds = 0;
     _startTime = DateTime.now();
 
     // Pulse animation for the timer circle
@@ -58,22 +63,22 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
       vsync: this,
     )..repeat(reverse: true);
 
-    // Start the countdown timer
+    // Start the timer (counting up)
     _startTimer();
 
     // Listen for STOP message from ESP32
     _listenForStopSignal();
 
-    print('🏁 Race started! Maximum time: ${_formatTime(_totalSeconds)}');
+    print('🏁 Race started! Time allowed: ${_formatTime(_timeAllowedSeconds)}, Max time: ${_formatTime(_maxTimeSeconds)}');
   }
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        if (_remainingSeconds > 0) {
-          _remainingSeconds--;
-        } else {
-          // Time's up
+        _elapsedSeconds++;
+
+        // Check if maximum time exceeded
+        if (_elapsedSeconds >= _maxTimeSeconds) {
           _handleTimeExpired();
         }
       });
@@ -106,7 +111,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
         RaceResultsScreen.routeName,
         arguments: {
           'elapsedSeconds': elapsedSeconds,
-          'maxSeconds': _totalSeconds,
+          'maxSeconds': _maxTimeSeconds,
           'riderName': widget.riderName,
           'eventName': widget.eventName,
           'horseName': widget.horseName,
@@ -128,8 +133,8 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
       Navigator.of(context).pushReplacementNamed(
         RaceResultsScreen.routeName,
         arguments: {
-          'elapsedSeconds': _totalSeconds,
-          'maxSeconds': _totalSeconds,
+          'elapsedSeconds': _maxTimeSeconds,
+          'maxSeconds': _maxTimeSeconds,
           'riderName': widget.riderName,
           'eventName': widget.eventName,
           'horseName': widget.horseName,
@@ -161,15 +166,30 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     }
   }
 
-  double get _progress => _remainingSeconds / _totalSeconds;
+  double get _progress {
+    // Progress goes from 0 to 1 based on MAX time
+    // This way the circle fills completely at max time (14 sec), not at allowed time (7 sec)
+    return _elapsedSeconds / _maxTimeSeconds;
+  }
 
   Color get _timerColor {
-    if (_progress > 0.5) {
-      return Colors.green;
-    } else if (_progress > 0.25) {
-      return Colors.orange;
-    } else {
+    if (_elapsedSeconds >= _timeAllowedSeconds) {
+      // Over the allowed time - show RED
       return Colors.red;
+    }
+
+    // Calculate progress relative to allowed time for color changes
+    double allowedProgress = _elapsedSeconds / _timeAllowedSeconds;
+
+    if (allowedProgress < 0.5) {
+      // Less than 50% of allowed time used - GREEN
+      return Colors.green;
+    } else if (allowedProgress < 0.75) {
+      // 50-75% of allowed time used - still GREEN
+      return Colors.green;
+    } else {
+      // 75-100% of allowed time used - ORANGE (warning)
+      return Colors.orange;
     }
   }
 
@@ -178,19 +198,9 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     return WillPopScope(
       onWillPop: () async => false, // Prevent back button
       child: Scaffold(
-        backgroundColor: Colors.grey.shade100,
         appBar: AppBar(
-          backgroundColor: Colors.grey.shade100,
-          elevation: 0,
           automaticallyImplyLeading: false,
-          title: Text(
-            'Race In Progress',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
-          ),
-          centerTitle: true,
+          title: const Text('Race In Progress'),
         ),
         body: SafeArea(
           child: Padding(
@@ -203,17 +213,14 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    border: Border.all(
+                      color: const Color(0xFFE5E7EB),
+                      width: 1.5,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.person, color: Colors.blue.shade600, size: 24),
+                      const Icon(Icons.person_outline, color: Color(0xFF0066FF), size: 24),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -222,14 +229,12 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                             Text(
                               widget.riderName,
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             Text(
                               '${widget.horseName} • ${widget.eventName}',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey.shade600,
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
                         ),
@@ -305,7 +310,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  _formatTime(_remainingSeconds),
+                                  _formatTime(_elapsedSeconds),
                                   style: Theme.of(context)
                                       .textTheme
                                       .displayLarge
@@ -317,7 +322,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'REMAINING',
+                                  'ELAPSED',
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodyMedium
@@ -342,27 +347,18 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
-                    vertical: 16,
+                    vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.green.shade400, Colors.green.shade600],
-                    ),
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.green.shade400.withOpacity(0.4),
-                        blurRadius: 15,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
+                    color: const Color(0xFF10B981),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 12,
-                        height: 12,
+                        width: 10,
+                        height: 10,
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -375,17 +371,16 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                       const SizedBox(width: 12),
                       Text(
                         'WAITING FOR FINISH',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
+                          letterSpacing: 1,
                         ),
                       ),
                     ],
                   ),
                 ).animate().fadeIn(duration: 600.ms, delay: 400.ms),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
               ],
             ),
           ),

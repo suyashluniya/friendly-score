@@ -68,19 +68,8 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade100,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        title: Text(
-          'Rider Details',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        centerTitle: true,
+        title: const Text('Rider Details'),
       ),
       body: SafeArea(
         child: Padding(
@@ -100,22 +89,19 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                            border: Border.all(
+                              color: const Color(0xFFE5E7EB),
+                              width: 1.5,
+                            ),
                           ),
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.timer,
-                                color: Colors.blue.shade600,
+                              const Icon(
+                                Icons.timer_outlined,
+                                color: Color(0xFF0066FF),
                                 size: 24,
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,18 +113,14 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
                                           .bodyLarge
                                           ?.copyWith(
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
                                           ),
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 6),
                                     Text(
                                       'Max: ${_formatTime(widget.maxHours, widget.maxMinutes, widget.maxSeconds)}',
                                       style: Theme.of(context)
                                           .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            color: Colors.grey.shade600,
-                                          ),
+                                          .bodyMedium,
                                     ),
                                   ],
                                 ),
@@ -147,7 +129,7 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
                           ),
                         ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2),
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 40),
 
                         // Form Fields
                         _buildInputField(
@@ -223,31 +205,16 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
                 // Save Button
                 SizedBox(
                       width: double.infinity,
-                      height: 56,
                       child: ElevatedButton(
                         onPressed: _handleSave,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              'Save & Continue',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                            ),
+                            const Text('Save & Continue'),
                             const SizedBox(width: 8),
                             const Icon(
                               Icons.arrow_forward,
-                              color: Colors.white,
+                              size: 20,
                             ),
                           ],
                         ),
@@ -277,53 +244,29 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
       children: [
         Row(
           children: [
-            Icon(icon, size: 20, color: Colors.grey.shade600),
+            Icon(icon, size: 18, color: const Color(0xFF6C757D)),
             const SizedBox(width: 8),
             Text(
               label,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
               ),
             ),
             if (isRequired) ...[
               const SizedBox(width: 4),
-              Text(
+              const Text(
                 '*',
-                style: TextStyle(color: Colors.red.shade600, fontSize: 16),
+                style: TextStyle(color: Color(0xFFEF4444), fontSize: 16),
               ),
             ],
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         TextFormField(
           controller: controller,
           maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey.shade500),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.black, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.red.shade400, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
           ),
           validator: isRequired
               ? (value) {

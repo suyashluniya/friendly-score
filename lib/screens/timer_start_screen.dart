@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'bluetooth_ready_screen.dart';
 import 'bluetooth_failed_screen.dart';
 import '../services/bluetooth_service.dart';
@@ -66,8 +65,38 @@ class _TimerStartScreenState extends State<TimerStartScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reset connection state when returning to this screen
-    _resetConnectionState();
+    // Check if already connected when screen loads
+    _checkExistingConnection();
+  }
+
+  Future<void> _checkExistingConnection() async {
+    final btService = BluetoothService();
+
+    // If already connected, go directly to ready screen
+    if (btService.isConnected) {
+      print('✅ Already connected to Bluetooth device');
+      // Navigate to Bluetooth ready screen immediately
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed(
+            BluetoothReadyScreen.routeName,
+            arguments: {
+              'selectedHours': widget.selectedHours,
+              'selectedMinutes': widget.selectedMinutes,
+              'selectedSeconds': widget.selectedSeconds,
+              'maxHours': widget.maxHours,
+              'maxMinutes': widget.maxMinutes,
+              'maxSeconds': widget.maxSeconds,
+              'riderName': widget.riderName,
+              'eventName': widget.eventName,
+              'horseName': widget.horseName,
+              'horseId': widget.horseId,
+              'additionalDetails': widget.additionalDetails,
+            },
+          );
+        }
+      });
+    }
   }
 
   @override
@@ -75,17 +104,6 @@ class _TimerStartScreenState extends State<TimerStartScreen>
     _pulseController.dispose();
     _glowController.dispose();
     super.dispose();
-  }
-
-  void _resetConnectionState() {
-    if (mounted) {
-      setState(() {
-        _isPressed = false;
-        _isConnecting = false;
-        _isConnected = false;
-      });
-      _glowController.reset();
-    }
   }
 
   void _onStartPressed() async {
@@ -236,19 +254,8 @@ class _TimerStartScreenState extends State<TimerStartScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade100,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        title: Text(
-          'Ready to Start',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        centerTitle: true,
+        title: const Text('Ready to Start'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -260,14 +267,11 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 15,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFE5E7EB),
+                    width: 1.5,
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -290,6 +294,7 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                         widget.selectedSeconds,
                       ),
                     ),
+                    const Divider(height: 20),
                     _buildInfoRow(
                       Icons.schedule,
                       'Max Time',
@@ -301,9 +306,9 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                     ),
                   ],
                 ),
-              ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2),
+              ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
               // Instructions
               Text(
@@ -313,25 +318,23 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                     ? 'Connecting to ESP32-BT-Client...'
                     : 'Press to connect to ESP32 timing system',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade700,
                 ),
                 textAlign: TextAlign.center,
-              ).animate().fadeIn(duration: 800.ms, delay: 400.ms),
+              ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 48),
 
-              // Circular Start Button (Car Push Button Style)
+              // Connect Button
               AnimatedBuilder(
                 animation: _pulseController,
                 builder: (context, child) {
                   return Container(
-                    width: 200,
-                    height: 200,
+                    width: 180,
+                    height: 180,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       boxShadow: [
-                        // Outer glow effect
                         BoxShadow(
                           color: Colors.green.shade400.withOpacity(
                             0.3 + (0.2 * _pulseController.value),
@@ -339,11 +342,10 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                           blurRadius: 30 + (20 * _pulseController.value),
                           spreadRadius: 5 + (10 * _pulseController.value),
                         ),
-                        // Inner shadow for depth
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
@@ -354,8 +356,8 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                           onTapDown: (_) => _onStartPressed(),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 150),
-                            width: 200,
-                            height: 200,
+                            width: 180,
+                            height: 180,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: RadialGradient(
@@ -374,14 +376,14 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                               ),
                               border: Border.all(
                                 color: Colors.green.shade200,
-                                width: 4,
+                                width: 3,
                               ),
                               boxShadow: _isPressed
                                   ? [
                                       BoxShadow(
                                         color: Colors.green.shade600
                                             .withOpacity(0.6),
-                                        blurRadius: 30,
+                                        blurRadius: 25,
                                         spreadRadius: 5,
                                       ),
                                     ]
@@ -390,29 +392,30 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                             child: Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.play_arrow,
-                                    size: 60,
+                                    Icons.bluetooth,
+                                    size: 48,
                                     color: Colors.white,
                                     shadows: [
                                       Shadow(
                                         color: Colors.black.withOpacity(0.3),
                                         blurRadius: 10,
-                                        offset: const Offset(0, 4),
+                                        offset: const Offset(0, 3),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 12),
                                   Text(
                                     _isConnecting ? 'CONNECTING' : 'CONNECT',
                                     style: Theme.of(context)
                                         .textTheme
-                                        .headlineSmall
+                                        .titleLarge
                                         ?.copyWith(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
-                                          letterSpacing: 2,
+                                          letterSpacing: 1.5,
                                           shadows: [
                                             Shadow(
                                               color: Colors.black.withOpacity(
@@ -433,42 +436,41 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                     ),
                   );
                 },
-              ).animate().scale(
-                duration: 800.ms,
-                delay: 600.ms,
-                curve: Curves.elasticOut,
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 32),
 
               // Status indicator
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
+                  horizontal: 20,
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.orange.shade200),
+                  color: const Color(0xFFF59E0B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFF59E0B).withOpacity(0.3),
+                    width: 1.5,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       _isConnected
-                          ? Icons.check_circle
+                          ? Icons.check_circle_outline
                           : _isConnecting
                           ? Icons.sync
-                          : Icons.pending,
+                          : Icons.pending_outlined,
                       color: _isConnected
-                          ? Colors.green.shade600
+                          ? const Color(0xFF10B981)
                           : _isConnecting
-                          ? Colors.blue.shade600
-                          : Colors.orange.shade600,
-                      size: 18,
+                          ? const Color(0xFF0066FF)
+                          : const Color(0xFFF59E0B),
+                      size: 20,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Text(
                       _isConnecting
                           ? 'Connecting to Hardware'
@@ -477,18 +479,18 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                           : 'Ready to Connect',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: _isConnected
-                            ? Colors.green.shade700
+                            ? const Color(0xFF10B981)
                             : _isConnecting
-                            ? Colors.blue.shade700
-                            : Colors.orange.shade700,
+                            ? const Color(0xFF0066FF)
+                            : const Color(0xFFF59E0B),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-              ).animate().fadeIn(duration: 600.ms, delay: 800.ms),
+              ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -500,22 +502,21 @@ class _TimerStartScreenState extends State<TimerStartScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 20, color: Colors.grey.shade600),
+          Icon(icon, size: 20, color: const Color(0xFF6C757D)),
           const SizedBox(width: 12),
           Text(
             '$label:',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.black87,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.end,

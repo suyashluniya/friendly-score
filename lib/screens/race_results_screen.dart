@@ -1,7 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:path_provider/path_provider.dart';
+import 'rider_details_screen.dart';
 
-class RaceResultsScreen extends StatelessWidget {
+class RaceResultsScreen extends StatefulWidget {
   const RaceResultsScreen({
     super.key,
     required this.elapsedSeconds,
@@ -26,23 +29,115 @@ class RaceResultsScreen extends StatelessWidget {
   final bool isSuccess;
 
   @override
+  State<RaceResultsScreen> createState() => _RaceResultsScreenState();
+}
+
+class _RaceResultsScreenState extends State<RaceResultsScreen> {
+  bool _isSaving = false;
+
+  Future<void> _saveRaceData() async {
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      // Get the application documents directory
+      final directory = await getApplicationDocumentsDirectory();
+
+      // Create race_results folder if it doesn't exist
+      final raceResultsDir = Directory('${directory.path}/race_results');
+      if (!await raceResultsDir.exists()) {
+        await raceResultsDir.create(recursive: true);
+      }
+
+      // Create filename with timestamp
+      final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+      final fileName = 'race_${widget.riderName.replaceAll(' ', '_')}_$timestamp.json';
+      final file = File('${raceResultsDir.path}/$fileName');
+
+      // Prepare race data
+      final raceData = {
+        'timestamp': DateTime.now().toIso8601String(),
+        'rider': {
+          'name': widget.riderName,
+          'horseName': widget.horseName,
+          'horseId': widget.horseId,
+        },
+        'event': widget.eventName,
+        'result': {
+          'elapsedTime': _formatTime(widget.elapsedSeconds),
+          'elapsedSeconds': widget.elapsedSeconds,
+          'maxTime': _formatTime(widget.maxSeconds),
+          'maxSeconds': widget.maxSeconds,
+          'isSuccess': widget.isSuccess,
+          'status': widget.isSuccess ? 'Completed' : 'Time Exceeded',
+        },
+        'additionalDetails': widget.additionalDetails,
+      };
+
+      // Write to file
+      await file.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(raceData),
+      );
+
+      print('✅ Race data saved to: ${file.path}');
+
+      if (mounted) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Race data saved successfully!\n${file.path}'),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error saving race data: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Failed to save: $e'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade100,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        title: Text(
-          'Race Results',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        centerTitle: true,
+        title: const Text('Race Results'),
         leading: IconButton(
-          icon: const Icon(Icons.home),
+          icon: const Icon(Icons.home_outlined),
           onPressed: () {
             Navigator.of(context).popUntil((route) => route.isFirst);
           },
@@ -53,89 +148,72 @@ class RaceResultsScreen extends StatelessWidget {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               // Success/Failure Icon
               Container(
-                width: 120,
-                height: 120,
+                width: 80,
+                height: 80,
                 decoration: BoxDecoration(
-                  color: isSuccess
-                      ? Colors.green.shade100
-                      : Colors.orange.shade100,
+                  color: widget.isSuccess
+                      ? const Color(0xFF10B981).withOpacity(0.1)
+                      : const Color(0xFFF59E0B).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
+                alignment: Alignment.center,
                 child: Icon(
-                  isSuccess ? Icons.check_circle : Icons.access_time,
-                  color: isSuccess
-                      ? Colors.green.shade600
-                      : Colors.orange.shade600,
-                  size: 60,
+                  widget.isSuccess ? Icons.check_circle : Icons.access_time,
+                  color: widget.isSuccess
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFFF59E0B),
+                  size: 48,
                 ),
-              )
-                  .animate()
-                  .scale(duration: 800.ms, curve: Curves.elasticOut)
-                  .fadeIn(duration: 600.ms),
+              ),
 
               const SizedBox(height: 24),
 
               // Result Title
               Text(
-                isSuccess ? 'Race Completed!' : 'Time Exceeded',
+                widget.isSuccess ? 'Race Completed!' : 'Time Exceeded',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: isSuccess
-                      ? Colors.green.shade700
-                      : Colors.orange.shade700,
+                  color: widget.isSuccess
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFFF59E0B),
                 ),
                 textAlign: TextAlign.center,
-              )
-                  .animate()
-                  .fadeIn(duration: 600.ms, delay: 200.ms)
-                  .slideY(begin: 0.2),
+              ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               // Time Card
               Container(
-                padding: const EdgeInsets.all(32),
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isSuccess
-                        ? [Colors.green.shade400, Colors.green.shade600]
-                        : [Colors.orange.shade400, Colors.orange.shade600],
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (isSuccess
-                              ? Colors.green.shade400
-                              : Colors.orange.shade400)
-                          .withOpacity(0.4),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+                  color: widget.isSuccess
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFFF59E0B),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'Time Taken',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
-                        letterSpacing: 1.5,
+                        letterSpacing: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
-                      _formatTime(elapsedSeconds),
+                      _formatTime(widget.elapsedSeconds),
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 56,
+                        fontSize: 48,
                         shadows: [
                           Shadow(
                             color: Colors.black.withOpacity(0.2),
@@ -147,7 +225,7 @@ class RaceResultsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Max: ${_formatTime(maxSeconds)}',
+                      'Max: ${_formatTime(widget.maxSeconds)}',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Colors.white.withOpacity(0.9),
                         fontWeight: FontWeight.w500,
@@ -155,34 +233,29 @@ class RaceResultsScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-              )
-                  .animate()
-                  .fadeIn(duration: 600.ms, delay: 400.ms)
-                  .slideY(begin: 0.3),
+              ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               // Rider Details Card
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 15,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFE5E7EB),
+                    width: 1.5,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Icon(Icons.emoji_events,
-                            color: Colors.amber.shade600, size: 28),
+                        Icon(Icons.emoji_events_outlined,
+                            color: Colors.amber.shade700, size: 24),
                         const SizedBox(width: 12),
                         Text(
                           'Race Details',
@@ -191,107 +264,104 @@ class RaceResultsScreen extends StatelessWidget {
                               .titleLarge
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
                               ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     _buildDetailRow(
                       context,
                       Icons.person,
                       'Rider',
-                      riderName,
+                      widget.riderName,
                       Colors.blue.shade600,
                     ),
-                    const Divider(height: 24),
+                    const Divider(height: 20),
                     _buildDetailRow(
                       context,
                       Icons.pets,
                       'Horse',
-                      '$horseName ($horseId)',
+                      '${widget.horseName} (${widget.horseId})',
                       Colors.brown.shade600,
                     ),
-                    const Divider(height: 24),
+                    const Divider(height: 20),
                     _buildDetailRow(
                       context,
                       Icons.event,
                       'Event',
-                      eventName,
+                      widget.eventName,
                       Colors.purple.shade600,
                     ),
-                    if (additionalDetails.isNotEmpty) ...[
-                      const Divider(height: 24),
+                    if (widget.additionalDetails.isNotEmpty) ...[
+                      const Divider(height: 20),
                       _buildDetailRow(
                         context,
                         Icons.info_outline,
                         'Notes',
-                        additionalDetails,
+                        widget.additionalDetails,
                         Colors.grey.shade600,
                       ),
                     ],
                   ],
                 ),
-              )
-                  .animate()
-                  .fadeIn(duration: 600.ms, delay: 600.ms)
-                  .slideY(begin: 0.3),
+              ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               // Action Buttons
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).popUntil((route) => route.isFirst);
-                      },
-                      icon: const Icon(Icons.home),
-                      label: const Text('HOME'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
+                      onPressed: _isSaving ? null : _saveRaceData,
+                      icon: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.save_outlined),
+                      label: Text(_isSaving ? 'SAVING...' : 'SAVE'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: OutlinedButton.icon(
+                    child: ElevatedButton.icon(
                       onPressed: () {
-                        // TODO: Implement share functionality
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Share feature coming soon!'),
-                            backgroundColor: Colors.blue.shade600,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
+                        // Calculate original selected time from maxSeconds (maxSeconds = selectedSeconds * 2)
+                        int totalMaxSeconds = widget.maxSeconds;
+                        int selectedTotalSeconds = totalMaxSeconds ~/ 2;
+
+                        int nextSelectedHours = selectedTotalSeconds ~/ 3600;
+                        int nextSelectedMinutes = (selectedTotalSeconds % 3600) ~/ 60;
+                        int nextSelectedSeconds = selectedTotalSeconds % 60;
+
+                        int nextMaxHours = totalMaxSeconds ~/ 3600;
+                        int nextMaxMinutes = (totalMaxSeconds % 3600) ~/ 60;
+                        int nextMaxSeconds = totalMaxSeconds % 60;
+
+                        // Navigate to rider details for next rider
+                        Navigator.of(context).pushNamed(
+                          RiderDetailsScreen.routeName,
+                          arguments: {
+                            'selectedHours': nextSelectedHours,
+                            'selectedMinutes': nextSelectedMinutes,
+                            'selectedSeconds': nextSelectedSeconds,
+                            'maxHours': nextMaxHours,
+                            'maxMinutes': nextMaxMinutes,
+                            'maxSeconds': nextMaxSeconds,
+                          },
                         );
                       },
-                      icon: const Icon(Icons.share),
-                      label: const Text('SHARE'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.blue.shade600,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: Colors.blue.shade600, width: 2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
+                      icon: const Icon(Icons.person_add_outlined),
+                      label: const Text('NEXT'),
                     ),
                   ),
                 ],
-              )
-                  .animate()
-                  .fadeIn(duration: 600.ms, delay: 800.ms)
-                  .slideY(begin: 0.3),
+              ),
 
               const SizedBox(height: 20),
             ],
@@ -309,30 +379,32 @@ class RaceResultsScreen extends StatelessWidget {
     Color iconColor,
   ) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
             color: iconColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
+          alignment: Alignment.center,
           child: Icon(icon, color: iconColor, size: 20),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.grey.shade600,
                   fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 value,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(

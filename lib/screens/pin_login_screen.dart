@@ -72,7 +72,6 @@ class _PinLoginScreenState extends State<PinLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -86,38 +85,32 @@ class _PinLoginScreenState extends State<PinLoginScreen> {
                 'Timing App',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
                 ),
               ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               // Subtitle
               Text(
                 'Enter PIN to continue',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: Colors.grey.shade600),
+                style: Theme.of(context).textTheme.bodyLarge,
               ).animate().fadeIn(duration: 600.ms, delay: 200.ms),
 
-              const SizedBox(height: 60),
+              const SizedBox(height: 64),
 
               // PIN Display
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(4, (index) {
                   return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 12),
-                        width: 20,
-                        height: 20,
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        width: 16,
+                        height: 16,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: index < _enteredPin.length
-                              ? (_isError ? Colors.red : Colors.black)
-                              : Colors.grey.shade300,
-                          border: _isError
-                              ? Border.all(color: Colors.red, width: 2)
-                              : null,
+                              ? (_isError ? const Color(0xFFEF4444) : const Color(0xFF0066FF))
+                              : const Color(0xFFE5E7EB),
                         ),
                       )
                       .animate(target: _isError ? 1 : 0)
@@ -126,16 +119,16 @@ class _PinLoginScreenState extends State<PinLoginScreen> {
               ).animate().fadeIn(duration: 600.ms, delay: 400.ms),
 
               if (_isError) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 Text(
                   'Incorrect PIN. Try again.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.red),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFFEF4444),
+                  ),
                 ).animate().fadeIn(duration: 300.ms),
               ],
 
-              const SizedBox(height: 80),
+              const SizedBox(height: 64),
 
               // Number Pad
               GridView.builder(
@@ -170,12 +163,10 @@ class _PinLoginScreenState extends State<PinLoginScreen> {
               // Hint text
               Text(
                 'Default PIN: 0000',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade500),
+                style: Theme.of(context).textTheme.bodySmall,
               ).animate().fadeIn(duration: 600.ms, delay: 800.ms),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -190,20 +181,17 @@ class _PinLoginScreenState extends State<PinLoginScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          border: Border.all(
+            color: const Color(0xFFE5E7EB),
+            width: 1,
+          ),
         ),
         child: Center(
           child: Text(
             number,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+              height: 1,
             ),
           ),
         ),
@@ -218,16 +206,17 @@ class _PinLoginScreenState extends State<PinLoginScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          border: Border.all(
+            color: const Color(0xFFE5E7EB),
+            width: 1,
+          ),
         ),
-        child: const Center(
-          child: Icon(Icons.backspace_outlined, color: Colors.black, size: 24),
+        child: Center(
+          child: Icon(
+            Icons.backspace_outlined,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            size: 24,
+          ),
         ),
       ),
     );

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'top_score_screen.dart';
 import 'normal_jumping_screen.dart';
 
@@ -9,52 +11,75 @@ class JumpingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        // title: const Text('Jumping Mode'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.black,
+        title: const Text('Show Jumping'),
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 16),
-              Text(
-                'Show Jumping'.toUpperCase(),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+              const SizedBox(height: 40),
+              // Title section
+              Column(
+                children: [
+                  Text(
+                    'Choose Your Mode',
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Select the jumping mode for your event',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: const Color(0xFF6C757D),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              Flexible(
-                flex: 1,
-                child: _JumpOptionButton(
-                  label: 'Top Score'.toUpperCase(),
-                  icon: Icons.emoji_events,
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    TopScoreJumpingScreen.routeName,
+              const SizedBox(height: 60),
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Flexible(
+                          child: _JumpOptionButton(
+                            label: 'Top Score',
+                            description: 'Competitive mode with time limits',
+                            icon: FontAwesomeIcons.trophy,
+                            color: const Color(0xFFF59E0B),
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              TopScoreJumpingScreen.routeName,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Flexible(
+                          child: _JumpOptionButton(
+                            label: 'Normal',
+                            description: 'Practice mode for training sessions',
+                            icon: FontAwesomeIcons.personRunning,
+                            color: const Color(0xFF0066FF),
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              NormalJumpingScreen.routeName,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Flexible(
-                flex: 1,
-                child: _JumpOptionButton(
-                  label: 'Normal'.toUpperCase(),
-                  icon: Icons.directions_run,
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    NormalJumpingScreen.routeName,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -66,11 +91,15 @@ class JumpingScreen extends StatelessWidget {
 class _JumpOptionButton extends StatelessWidget {
   const _JumpOptionButton({
     required this.label,
+    required this.description,
     required this.icon,
+    required this.color,
     required this.onTap,
   });
   final String label;
+  final String description;
   final IconData icon;
+  final Color color;
   final VoidCallback onTap;
 
   @override
@@ -79,39 +108,63 @@ class _JumpOptionButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        constraints: const BoxConstraints(minHeight: 140, maxHeight: 200),
+        constraints: const BoxConstraints(
+          minHeight: 100,
+        ),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          border: Border.all(
+            color: const Color(0xFFE5E7EB),
+            width: 1.5,
+          ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Row(
             children: [
+              // Icon container
               Container(
-                padding: const EdgeInsets.all(20),
+                width: 80,
+                height: 80,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Icon(icon, size: 48, color: Colors.black87),
+                alignment: Alignment.center,
+                child: FaIcon(icon, size: 36, color: color),
               ),
-              const SizedBox(height: 16),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+              const SizedBox(width: 24),
+              // Text content
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF6C757D),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                textAlign: TextAlign.center,
+              ),
+              const SizedBox(width: 12),
+              // Arrow icon
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 20,
+                color: color,
               ),
             ],
           ),

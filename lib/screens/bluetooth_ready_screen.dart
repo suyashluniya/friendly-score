@@ -86,19 +86,8 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade100,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        title: Text(
-          'System Armed',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        centerTitle: true,
+        title: const Text('System Armed'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -112,13 +101,13 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
-                      color: Colors.green.shade100,
+                      color: const Color(0xFF10B981).withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.bluetooth_connected,
-                      color: Colors.green.shade600,
-                      size: 60,
+                      color: Color(0xFF10B981),
+                      size: 64,
                     ),
                   )
                   .animate()
@@ -132,7 +121,7 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                     'Application Armed!',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.green.shade700,
+                      color: const Color(0xFF10B981),
                     ),
                     textAlign: TextAlign.center,
                   )
@@ -140,21 +129,18 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                   .fadeIn(duration: 600.ms, delay: 200.ms)
                   .slideY(begin: 0.2),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Detailed Status
               Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 15,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFE5E7EB),
+                        width: 1.5,
+                      ),
                     ),
                     child: Column(
                       children: [
@@ -234,9 +220,12 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: const Color(0xFF0066FF).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(
+                    color: const Color(0xFF0066FF).withOpacity(0.2),
+                    width: 1.5,
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -244,7 +233,7 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                       'Race Setup Summary',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800,
+                        color: const Color(0xFF0066FF),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -269,33 +258,23 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
               Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,
-                      vertical: 16,
+                      vertical: 14,
                     ),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.green.shade400, Colors.green.shade600],
-                      ),
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.green.shade400.withOpacity(0.4),
-                          blurRadius: 15,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      color: const Color(0xFF10B981),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, color: Colors.white, size: 24),
+                        const Icon(Icons.check_circle_outline, color: Colors.white, size: 24),
                         const SizedBox(width: 12),
                         Text(
                           'SYSTEM READY',
-                          style: Theme.of(context).textTheme.titleMedium
+                          style: Theme.of(context).textTheme.labelLarge
                               ?.copyWith(
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
+                                letterSpacing: 1,
                               ),
                         ),
                       ],
@@ -305,7 +284,7 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                   .fadeIn(duration: 600.ms, delay: 800.ms)
                   .scale(curve: Curves.elasticOut),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
           ),
         ),
