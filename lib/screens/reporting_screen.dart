@@ -25,8 +25,13 @@ class _ReportingScreenState extends State<ReportingScreen> {
 
   Future<void> _loadAnalyticsData() async {
     try {
-      // Trigger migration of old data if needed
-      await _dataService.migrateOldData();
+      // Trigger migration of old data if needed (but don't let it block us)
+      try {
+        await _dataService.migrateOldData();
+      } catch (migrationError, stackTrace) {
+        print('Warning: Migration failed but continuing: $migrationError');
+        print('Migration stack trace: $stackTrace');
+      }
 
       // Load analytics data
       final analytics = await _dataService.getAnalytics();
@@ -37,10 +42,12 @@ class _ReportingScreenState extends State<ReportingScreen> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Error loading analytics data: $e');
+      print('Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
+          _analyticsData = null;
           _isLoading = false;
         });
       }
@@ -259,16 +266,16 @@ class _ReportingScreenState extends State<ReportingScreen> {
                     'Individual rider best times & achievements',
                     FontAwesomeIcons.stopwatch,
                   ),
-                  _ReportItem(
-                    'Performance Trends',
-                    'Progress tracking over time',
-                    FontAwesomeIcons.chartLine,
-                  ),
-                  _ReportItem(
-                    'Comparison Analysis',
-                    'Rider vs rider performance metrics',
-                    FontAwesomeIcons.balanceScale,
-                  ),
+                  // _ReportItem(
+                  //   'Performance Trends',
+                  //   'Progress tracking over time',
+                  //   FontAwesomeIcons.chartLine,
+                  // ),
+                  // _ReportItem(
+                  //   'Comparison Analysis',
+                  //   'Rider vs rider performance metrics',
+                  //   FontAwesomeIcons.balanceScale,
+                  // ),
                 ],
                 1000,
               ),
@@ -288,58 +295,56 @@ class _ReportingScreenState extends State<ReportingScreen> {
                     'Last 10 recorded sessions with details',
                     FontAwesomeIcons.history,
                   ),
-                  _ReportItem(
-                    'Event Summary',
-                    'Complete event breakdowns by location',
-                    FontAwesomeIcons.mapMarkerAlt,
-                  ),
+                  // _ReportItem(
+                  //   'Event Summary',
+                  //   'Complete event breakdowns by location',
+                  //   FontAwesomeIcons.mapMarkerAlt,
+                  // ),
                   _ReportItem(
                     'Mode Statistics',
                     'Show Jumping vs Mountain Sport analytics',
                     FontAwesomeIcons.chartPie,
                   ),
-                  _ReportItem(
-                    'Hardware Performance',
-                    'IR-Timer connection success rates',
-                    FontAwesomeIcons.microchip,
-                  ),
+                  // _ReportItem(
+                  //   'Hardware Performance',
+                  //   'IR-Timer connection success rates',
+                  //   FontAwesomeIcons.microchip,
+                  // ),
                 ],
                 1200,
               ),
 
-              const SizedBox(height: 24),
-
               // Horse & Equipment Reports
-              _buildReportSection(
-                context,
-                'Horse & Equipment Reports',
-                'Horse performance and equipment analytics',
-                FontAwesomeIcons.horse,
-                Colors.amber.shade600,
-                [
-                  _ReportItem(
-                    'Horse Performance',
-                    'Individual horse statistics & records',
-                    FontAwesomeIcons.horse,
-                  ),
-                  _ReportItem(
-                    'Equipment Usage',
-                    'IR-Timer module usage patterns',
-                    FontAwesomeIcons.cogs,
-                  ),
-                  _ReportItem(
-                    'Horse-Rider Combinations',
-                    'Best performing partnerships',
-                    FontAwesomeIcons.handshake,
-                  ),
-                  _ReportItem(
-                    'Training Progress',
-                    'Horse improvement over time',
-                    FontAwesomeIcons.chartLine,
-                  ),
-                ],
-                1400,
-              ),
+              // _buildReportSection(
+              //   context,
+              //   'Horse & Equipment Reports',
+              //   'Horse performance and equipment analytics',
+              //   FontAwesomeIcons.horse,
+              //   Colors.amber.shade600,
+              //   [
+              //     _ReportItem(
+              //       'Horse Performance',
+              //       'Individual horse statistics & records',
+              //       FontAwesomeIcons.horse,
+              //     ),
+              //     _ReportItem(
+              //       'Equipment Usage',
+              //       'IR-Timer module usage patterns',
+              //       FontAwesomeIcons.cogs,
+              //     ),
+              //     _ReportItem(
+              //       'Horse-Rider Combinations',
+              //       'Best performing partnerships',
+              //       FontAwesomeIcons.handshake,
+              //     ),
+              //     _ReportItem(
+              //       'Training Progress',
+              //       'Horse improvement over time',
+              //       FontAwesomeIcons.chartLine,
+              //     ),
+              //   ],
+              //   1400,
+              // ),
 
               const SizedBox(height: 24),
 
@@ -356,21 +361,21 @@ class _ReportingScreenState extends State<ReportingScreen> {
                     'Best/worst performing venues',
                     FontAwesomeIcons.map,
                   ),
-                  _ReportItem(
-                    'Time Analysis',
-                    'Peak performance hours & patterns',
-                    FontAwesomeIcons.clock,
-                  ),
-                  _ReportItem(
-                    'Weather Impact',
-                    'Performance correlation with conditions',
-                    FontAwesomeIcons.cloudSun,
-                  ),
-                  _ReportItem(
-                    'Venue Comparison',
-                    'Cross-location performance analysis',
-                    FontAwesomeIcons.exchangeAlt,
-                  ),
+                  // _ReportItem(
+                  //   'Time Analysis',
+                  //   'Peak performance hours & patterns',
+                  //   FontAwesomeIcons.clock,
+                  // ),
+                  // _ReportItem(
+                  //   'Weather Impact',
+                  //   'Performance correlation with conditions',
+                  //   FontAwesomeIcons.cloudSun,
+                  // ),
+                  // _ReportItem(
+                  //   'Venue Comparison',
+                  //   'Cross-location performance analysis',
+                  //   FontAwesomeIcons.exchangeAlt,
+                  // ),
                 ],
                 1600,
               ),
@@ -378,36 +383,36 @@ class _ReportingScreenState extends State<ReportingScreen> {
               const SizedBox(height: 24),
 
               // Advanced Analytics
-              _buildReportSection(
-                context,
-                'Advanced Analytics',
-                'AI-powered insights and predictive analysis',
-                FontAwesomeIcons.brain,
-                Colors.red.shade600,
-                [
-                  _ReportItem(
-                    'Predictive Performance',
-                    'AI-based performance predictions',
-                    FontAwesomeIcons.gem,
-                  ),
-                  _ReportItem(
-                    'Training Recommendations',
-                    'Personalized improvement suggestions',
-                    FontAwesomeIcons.lightbulb,
-                  ),
-                  _ReportItem(
-                    'Risk Analysis',
-                    'Performance consistency & risk factors',
-                    FontAwesomeIcons.shieldAlt,
-                  ),
-                  _ReportItem(
-                    'Goal Tracking',
-                    'Progress toward performance targets',
-                    FontAwesomeIcons.bullseye,
-                  ),
-                ],
-                1800,
-              ),
+              // _buildReportSection(
+              //   context,
+              //   'Advanced Analytics',
+              //   'AI-powered insights and predictive analysis',
+              //   FontAwesomeIcons.brain,
+              //   Colors.red.shade600,
+              //   [
+              //     _ReportItem(
+              //       'Predictive Performance',
+              //       'AI-based performance predictions',
+              //       FontAwesomeIcons.gem,
+              //     ),
+              //     _ReportItem(
+              //       'Training Recommendations',
+              //       'Personalized improvement suggestions',
+              //       FontAwesomeIcons.lightbulb,
+              //     ),
+              //     _ReportItem(
+              //       'Risk Analysis',
+              //       'Performance consistency & risk factors',
+              //       FontAwesomeIcons.shieldAlt,
+              //     ),
+              //     _ReportItem(
+              //       'Goal Tracking',
+              //       'Progress toward performance targets',
+              //       FontAwesomeIcons.bullseye,
+              //     ),
+              //   ],
+              //   1800,
+              // ),
 
               const SizedBox(height: 40),
             ],

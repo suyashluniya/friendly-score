@@ -3,10 +3,16 @@ import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import '../services/location_service.dart';
 import '../services/mode_service.dart';
+import '../utils/logger.dart';
 
 class UnifiedRaceDataService {
   static const String _fileName = 'unified_race_data.json';
   static UnifiedRaceDataService? _instance;
+
+  // Cache for race data
+  List<Map<String, dynamic>>? _cachedData;
+  DateTime? _cacheTimestamp;
+  static const Duration _cacheDuration = Duration(minutes: 5);
 
   factory UnifiedRaceDataService() {
     _instance ??= UnifiedRaceDataService._internal();
@@ -29,13 +35,22 @@ class UnifiedRaceDataService {
   }
 
   /// Load all race data from the unified file
-  Future<List<Map<String, dynamic>>> loadAllRaceData() async {
+  Future<List<Map<String, dynamic>>> loadAllRaceData({bool forceRefresh = false}) async {
+    // Check if we have valid cached data
+    if (!forceRefresh &&
+        _cachedData != null &&
+        _cacheTimestamp != null &&
+        DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
+      Logger.debug('Returning cached race data (${_cachedData!.length} records)', tag: 'DataService');
+      return _cachedData!;
+    }
+
     try {
       final file = await _getDataFile();
 
       // If file doesn't exist, return empty array
       if (!await file.exists()) {
-        print('📄 Unified race data file not found, returning empty data');
+        Logger.info('Unified race data file not found, returning empty data', tag: 'DataService');
         return [];
       }
 
@@ -44,20 +59,74 @@ class UnifiedRaceDataService {
         return [];
       }
 
-      final data = jsonDecode(jsonString);
+      try {
+        final data = jsonDecode(jsonString);
 
-      // Handle both array and object formats for backward compatibility
-      if (data is List) {
-        return List<Map<String, dynamic>>.from(data);
-      } else if (data is Map) {
-        // If it's a single object, wrap it in an array
-        return [Map<String, dynamic>.from(data)];
-      } else {
-        print('⚠️ Unexpected data format in unified file');
+        List<Map<String, dynamic>> result = [];
+        // Handle both array and object formats for backward compatibility
+        if (data is List) {
+          // Filter out any invalid entries
+          for (var item in data) {
+            if (item is Map) {
+              try {
+                result.add(Map<String, dynamic>.from(item));
+              } catch (e) {
+                Logger.warning('Skipping invalid data entry', tag: 'DataService');
+              }
+            }
+          }
+        } else if (data is Map) {
+          // If it's a single object, wrap it in an array
+          result = [Map<String, dynamic>.from(data)];
+        } else {
+          Logger.warning('Unexpected data format in unified file', tag: 'DataService');
+          result = [];
+        }
+
+        // Validate each record has the required structure
+        result = result.where((record) {
+          try {
+            // Check if record has the minimum required fields
+            return record['id'] != null &&
+                   record['timestamp'] != null &&
+                   record['rider'] is Map &&
+                   record['event'] is Map &&
+                   record['performance'] is Map;
+          } catch (e) {
+            Logger.warning('Skipping malformed record', tag: 'DataService');
+            return false;
+          }
+        }).toList();
+
+        // Cache the loaded data
+        _cachedData = result;
+        _cacheTimestamp = DateTime.now();
+        Logger.info('Loaded and cached ${result.length} valid race records', tag: 'DataService');
+
+        return result;
+      } on FormatException catch (e) {
+        Logger.error('JSON parsing error', tag: 'DataService', error: e);
+        // Try to restore from backup
+        final backupFile = File('${file.path}.backup');
+        if (await backupFile.exists()) {
+          Logger.info('Attempting to restore from backup...', tag: 'DataService');
+          try {
+            final backupJsonString = await backupFile.readAsString();
+            final backupData = jsonDecode(backupJsonString);
+            // Restore the backup to the main file
+            await file.writeAsString(backupJsonString);
+            Logger.info('Successfully restored from backup', tag: 'DataService');
+            if (backupData is List) {
+              return List<Map<String, dynamic>>.from(backupData);
+            }
+          } catch (backupError) {
+            Logger.error('Backup file is also corrupted', tag: 'DataService', error: backupError);
+          }
+        }
         return [];
       }
     } catch (e) {
-      print('❌ Error loading race data: $e');
+      Logger.error('Error loading race data', tag: 'DataService', error: e);
       return [];
     }
   }
@@ -74,12 +143,40 @@ class UnifiedRaceDataService {
     required bool isSuccess,
   }) async {
     try {
+      // Validate input data
+      if (riderName.trim().isEmpty) {
+        Logger.error('Validation error: Rider name is required', tag: 'DataService');
+        return false;
+      }
+      if (eventName.trim().isEmpty) {
+        Logger.error('Validation error: Event name is required', tag: 'DataService');
+        return false;
+      }
+      if (elapsedSeconds < 0) {
+        Logger.error('Validation error: Elapsed seconds cannot be negative', tag: 'DataService');
+        return false;
+      }
+      if (maxSeconds <= 0) {
+        Logger.error('Validation error: Max seconds must be greater than zero', tag: 'DataService');
+        return false;
+      }
+      if (horseName.trim().isEmpty) {
+        Logger.warning('Horse name is empty, using default', tag: 'DataService');
+        horseName = 'Unknown Horse';
+      }
+
       // Get services
       final locationService = LocationService();
       final modeService = ModeService();
 
       // Load current location data
       final locationData = await locationService.loadLocation();
+
+      // Calculate improvement percentage (must await this Future)
+      final improvementPercentage = await _calculateImprovementPercentage(
+        riderName,
+        elapsedSeconds,
+      );
 
       // Create the new race record
       final newRaceRecord = {
@@ -113,10 +210,7 @@ class UnifiedRaceDataService {
           'targetSeconds': maxSeconds,
           'isSuccess': isSuccess,
           'status': isSuccess ? 'Completed' : 'Time Exceeded',
-          'improvementPercentage': _calculateImprovementPercentage(
-            riderName,
-            elapsedSeconds,
-          ),
+          'improvementPercentage': improvementPercentage,
         },
         'hardware': {
           'connectionSuccess': true, // Assume successful if we reach this point
@@ -133,18 +227,41 @@ class UnifiedRaceDataService {
       // Add new record
       existingData.add(newRaceRecord);
 
-      // Save updated data
+      // Create backup before saving
       final file = await _getDataFile();
-      await file.writeAsString(
-        const JsonEncoder.withIndent('  ').convert(existingData),
-      );
+      if (await file.exists()) {
+        final backupFile = File('${file.path}.backup');
+        try {
+          await file.copy(backupFile.path);
+        } catch (e) {
+          Logger.warning('Could not create backup file', tag: 'DataService');
+        }
+      }
 
-      print(
-        '✅ Race data saved to unified file. Total records: ${existingData.length}',
-      );
+      // Save updated data
+      try {
+        await file.writeAsString(
+          const JsonEncoder.withIndent('  ').convert(existingData),
+        );
+
+        // Invalidate cache after saving
+        _cachedData = null;
+        _cacheTimestamp = null;
+      } catch (e) {
+        Logger.error('Error writing data file', tag: 'DataService', error: e);
+        // Try to restore from backup
+        final backupFile = File('${file.path}.backup');
+        if (await backupFile.exists()) {
+          await backupFile.copy(file.path);
+          Logger.info('Restored data from backup', tag: 'DataService');
+        }
+        return false;
+      }
+
+      Logger.info('Race data saved to unified file. Total records: ${existingData.length}', tag: 'DataService');
       return true;
     } catch (e) {
-      print('❌ Error saving race data: $e');
+      Logger.error('Error saving race data', tag: 'DataService', error: e);
       return false;
     }
   }
@@ -179,7 +296,10 @@ class UnifiedRaceDataService {
     try {
       final existingData = await loadAllRaceData();
       final riderRecords = existingData
-          .where((record) => record['rider']['name'] == riderName)
+          .where((record) {
+            final name = record['rider']?['name'];
+            return name != null && name == riderName;
+          })
           .toList();
 
       if (riderRecords.isEmpty) {
@@ -187,17 +307,27 @@ class UnifiedRaceDataService {
       }
 
       // Sort by timestamp to get the most recent previous record
-      riderRecords.sort((a, b) => a['timestamp'].compareTo(b['timestamp']));
+      riderRecords.sort((a, b) {
+        final aTimestamp = a['timestamp']?.toString() ?? '';
+        final bTimestamp = b['timestamp']?.toString() ?? '';
+        return aTimestamp.compareTo(bTimestamp);
+      });
       final previousRecord = riderRecords.last;
-      final previousTime =
-          previousRecord['performance']['elapsedSeconds'] as int;
+      final previousTimeValue = previousRecord['performance']?['elapsedSeconds'];
+
+      int previousTime = 0;
+      if (previousTimeValue is int) {
+        previousTime = previousTimeValue;
+      } else if (previousTimeValue is double) {
+        previousTime = previousTimeValue.toInt();
+      }
 
       if (previousTime == 0) return 0.0;
 
       final improvement = ((previousTime - currentTime) / previousTime) * 100;
       return double.parse(improvement.toStringAsFixed(2));
     } catch (e) {
-      print('⚠️ Error calculating improvement: $e');
+      Logger.warning('Error calculating improvement', tag: 'DataService');
       return 0.0;
     }
   }
@@ -219,10 +349,14 @@ class UnifiedRaceDataService {
     if (riderName != null && riderName.isNotEmpty) {
       filteredData = filteredData
           .where(
-            (record) => record['rider']['name']
-                .toString()
-                .toLowerCase()
-                .contains(riderName.toLowerCase()),
+            (record) {
+              final name = record['rider']?['name'];
+              if (name == null) return false;
+              return name
+                  .toString()
+                  .toLowerCase()
+                  .contains(riderName.toLowerCase());
+            },
           )
           .toList();
     }
@@ -230,7 +364,10 @@ class UnifiedRaceDataService {
     // Filter by mode
     if (mode != null && mode.isNotEmpty && mode != 'All Modes') {
       filteredData = filteredData
-          .where((record) => record['event']['mode'] == mode)
+          .where((record) {
+            final recordMode = record['event']?['mode'];
+            return recordMode != null && recordMode == mode;
+          })
           .toList();
     }
 
@@ -238,10 +375,14 @@ class UnifiedRaceDataService {
     if (location != null && location.isNotEmpty) {
       filteredData = filteredData
           .where(
-            (record) => record['event']['location']['name']
-                .toString()
-                .toLowerCase()
-                .contains(location.toLowerCase()),
+            (record) {
+              final locationName = record['event']?['location']?['name'];
+              if (locationName == null) return false;
+              return locationName
+                  .toString()
+                  .toLowerCase()
+                  .contains(location.toLowerCase());
+            },
           )
           .toList();
     }
@@ -249,29 +390,52 @@ class UnifiedRaceDataService {
     // Filter by date range
     if (startDate != null) {
       filteredData = filteredData.where((record) {
-        final recordDate = DateTime.parse(record['timestamp']);
-        return recordDate.isAfter(startDate) ||
-            recordDate.isAtSameMomentAs(startDate);
+        try {
+          final timestamp = record['timestamp'];
+          if (timestamp == null) return false;
+          final recordDate = DateTime.parse(timestamp.toString());
+          return recordDate.isAfter(startDate) ||
+              recordDate.isAtSameMomentAs(startDate);
+        } catch (e) {
+          return false;
+        }
       }).toList();
     }
 
     if (endDate != null) {
       filteredData = filteredData.where((record) {
-        final recordDate = DateTime.parse(record['timestamp']);
-        return recordDate.isBefore(endDate) ||
-            recordDate.isAtSameMomentAs(endDate);
+        try {
+          final timestamp = record['timestamp'];
+          if (timestamp == null) return false;
+          final recordDate = DateTime.parse(timestamp.toString());
+          return recordDate.isBefore(endDate) ||
+              recordDate.isAtSameMomentAs(endDate);
+        } catch (e) {
+          return false;
+        }
       }).toList();
     }
 
     // Filter by success status
     if (successOnly != null) {
       filteredData = filteredData
-          .where((record) => record['performance']['isSuccess'] == successOnly)
+          .where((record) {
+            final isSuccess = record['performance']?['isSuccess'];
+            return isSuccess == successOnly;
+          })
           .toList();
     }
 
     // Sort by timestamp (most recent first)
-    filteredData.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
+    filteredData.sort((a, b) {
+      try {
+        final aTimestamp = a['timestamp']?.toString() ?? '';
+        final bTimestamp = b['timestamp']?.toString() ?? '';
+        return bTimestamp.compareTo(aTimestamp);
+      } catch (e) {
+        return 0;
+      }
+    });
 
     // Apply limit
     if (limit != null && limit > 0) {
@@ -286,88 +450,141 @@ class UnifiedRaceDataService {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final data = await getRaceDataFiltered(
-      startDate: startDate,
-      endDate: endDate,
-    );
+    try {
+      final data = await getRaceDataFiltered(
+        startDate: startDate,
+        endDate: endDate,
+      );
 
-    if (data.isEmpty) {
-      return _getEmptyAnalytics();
-    }
+      if (data.isEmpty) {
+        return _getEmptyAnalytics();
+      }
 
-    // Basic statistics
-    final totalSessions = data.length;
-    final successfulSessions = data
-        .where((r) => r['performance']['isSuccess'] == true)
-        .length;
-    final successRate = (successfulSessions / totalSessions * 100);
+      // Validate all data entries before processing
+      final validData = data.where((record) {
+        try {
+          return record is Map &&
+                 record['performance'] is Map &&
+                 record['rider'] is Map &&
+                 record['event'] is Map;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
 
-    // Time statistics
-    final times = data
-        .map((r) => r['performance']['elapsedSeconds'] as int)
-        .toList();
-    times.sort();
-    final averageTime = times.reduce((a, b) => a + b) / times.length;
-    final bestTime = times.first;
-    final worstTime = times.last;
+      if (validData.isEmpty) {
+        return _getEmptyAnalytics();
+      }
 
-    // Rider statistics
-    final riderStats = <String, Map<String, dynamic>>{};
-    for (final record in data) {
-      final riderName = record['rider']['name'] as String;
-      if (!riderStats.containsKey(riderName)) {
-        riderStats[riderName] = {
+      // Basic statistics
+      final totalSessions = validData.length;
+      final successfulSessions = validData
+          .where((r) => r['performance']?['isSuccess'] == true)
+          .length;
+      final successRate = totalSessions > 0
+          ? (successfulSessions / totalSessions * 100)
+          : 0.0;
+
+      // Time statistics - filter out invalid times
+      final times = validData
+          .map((r) {
+            final elapsed = r['performance']?['elapsedSeconds'];
+            if (elapsed == null) return 0;
+            if (elapsed is int) return elapsed;
+            if (elapsed is double) return elapsed.toInt();
+            return 0;
+          })
+          .where((time) => time > 0)
+          .toList();
+
+      if (times.isEmpty) {
+        return _getEmptyAnalytics();
+      }
+
+      times.sort();
+      final averageTime = times.reduce((a, b) => a + b) / times.length;
+      final bestTime = times.first;
+      final worstTime = times.last;
+
+      // Rider statistics
+      final riderStats = <String, Map<String, dynamic>>{};
+      for (final record in validData) {
+      final riderName = record['rider']?['name'];
+      if (riderName == null || riderName.toString().isEmpty) continue;
+
+      final riderNameStr = riderName.toString();
+      if (!riderStats.containsKey(riderNameStr)) {
+        riderStats[riderNameStr] = {
           'sessions': 0,
           'successfulSessions': 0,
           'bestTime': double.infinity,
           'totalTime': 0,
-          'horseName': record['rider']['horseName'],
+          'horseName': record['rider']?['horseName'] ?? 'Unknown Horse',
         };
       }
 
-      final stats = riderStats[riderName]!;
+      final stats = riderStats[riderNameStr]!;
       stats['sessions']++;
-      if (record['performance']['isSuccess'] == true) {
+      if (record['performance']?['isSuccess'] == true) {
         stats['successfulSessions']++;
       }
 
-      final elapsedTime = record['performance']['elapsedSeconds'] as int;
-      stats['totalTime'] += elapsedTime;
-      if (elapsedTime < stats['bestTime']) {
-        stats['bestTime'] = elapsedTime.toDouble();
+      final elapsed = record['performance']?['elapsedSeconds'];
+      int elapsedTime = 0;
+      if (elapsed is int) {
+        elapsedTime = elapsed;
+      } else if (elapsed is double) {
+        elapsedTime = elapsed.toInt();
+      }
+
+      if (elapsedTime > 0) {
+        stats['totalTime'] += elapsedTime;
+        if (elapsedTime < stats['bestTime']) {
+          stats['bestTime'] = elapsedTime.toDouble();
+        }
       }
     }
 
-    // Mode statistics
-    final modeStats = <String, int>{};
-    for (final record in data) {
-      final mode = record['event']['mode'] as String;
-      modeStats[mode] = (modeStats[mode] ?? 0) + 1;
-    }
+      // Mode statistics
+      final modeStats = <String, int>{};
+      for (final record in validData) {
+        final mode = record['event']?['mode'];
+        if (mode != null && mode.toString().isNotEmpty) {
+          final modeStr = mode.toString();
+          modeStats[modeStr] = (modeStats[modeStr] ?? 0) + 1;
+        }
+      }
 
-    // Location statistics
-    final locationStats = <String, int>{};
-    for (final record in data) {
-      final location = record['event']['location']['name'] as String;
-      locationStats[location] = (locationStats[location] ?? 0) + 1;
-    }
+      // Location statistics
+      final locationStats = <String, int>{};
+      for (final record in validData) {
+        final location = record['event']?['location']?['name'];
+        if (location != null && location.toString().isNotEmpty) {
+          final locationStr = location.toString();
+          locationStats[locationStr] = (locationStats[locationStr] ?? 0) + 1;
+        }
+      }
 
-    return {
-      'summary': {
-        'totalSessions': totalSessions,
-        'successfulSessions': successfulSessions,
-        'successRate': double.parse(successRate.toStringAsFixed(1)),
-        'averageTime': averageTime.round(),
-        'bestTime': bestTime,
-        'worstTime': worstTime,
-        'uniqueRiders': riderStats.length,
-        'uniqueLocations': locationStats.length,
-      },
-      'riders': riderStats,
-      'modes': modeStats,
-      'locations': locationStats,
-      'recentSessions': data.take(10).toList(),
-    };
+      return {
+        'summary': {
+          'totalSessions': totalSessions,
+          'successfulSessions': successfulSessions,
+          'successRate': double.parse(successRate.toStringAsFixed(1)),
+          'averageTime': averageTime.round(),
+          'bestTime': bestTime,
+          'worstTime': worstTime,
+          'uniqueRiders': riderStats.length,
+          'uniqueLocations': locationStats.length,
+        },
+        'riders': riderStats,
+        'modes': modeStats,
+        'locations': locationStats,
+        'recentSessions': validData.take(10).toList(),
+      };
+    } catch (e, stackTrace) {
+      Logger.error('Error calculating analytics', tag: 'DataService', error: e, stackTrace: stackTrace);
+      return _getEmptyAnalytics();
+    }
   }
 
   Map<String, dynamic> _getEmptyAnalytics() {
@@ -396,7 +613,7 @@ class UnifiedRaceDataService {
       final raceResultsDir = Directory('${directory.path}/race_results');
 
       if (!await raceResultsDir.exists()) {
-        print('📁 No old race results directory found');
+        Logger.info('No old race results directory found', tag: 'Migration');
         return;
       }
 
@@ -407,11 +624,11 @@ class UnifiedRaceDataService {
           .toList();
 
       if (files.isEmpty) {
-        print('📄 No old JSON files found to migrate');
+        Logger.info('No old JSON files found to migrate', tag: 'Migration');
         return;
       }
 
-      print('🔄 Starting migration of ${files.length} old files...');
+      Logger.info('Starting migration of ${files.length} old files...', tag: 'Migration');
 
       final existingData = await loadAllRaceData();
       var migratedCount = 0;
@@ -450,7 +667,7 @@ class UnifiedRaceDataService {
           existingData.add(migratedRecord);
           migratedCount++;
         } catch (e) {
-          print('⚠️ Error migrating file ${file.path}: $e');
+          Logger.warning('Error migrating file ${file.path}', tag: 'Migration');
         }
       }
 
@@ -461,9 +678,7 @@ class UnifiedRaceDataService {
           const JsonEncoder.withIndent('  ').convert(existingData),
         );
 
-        print(
-          '✅ Successfully migrated $migratedCount records to unified format',
-        );
+        Logger.info('Successfully migrated $migratedCount records to unified format', tag: 'Migration');
 
         // Optionally archive old files instead of deleting them
         final archiveDir = Directory('${raceResultsDir.path}/archived');
@@ -476,10 +691,10 @@ class UnifiedRaceDataService {
           await file.copy('${archiveDir.path}/$fileName');
         }
 
-        print('📦 Old files archived to: ${archiveDir.path}');
+        Logger.info('Old files archived to: ${archiveDir.path}', tag: 'Migration');
       }
     } catch (e) {
-      print('❌ Error during migration: $e');
+      Logger.error('Error during migration', tag: 'Migration', error: e);
     }
   }
 
@@ -487,5 +702,41 @@ class UnifiedRaceDataService {
   Future<String> getDataFilePath() async {
     final file = await _getDataFile();
     return file.path;
+  }
+
+  /// Clear all data (use with caution - for debugging only)
+  Future<bool> clearAllData() async {
+    try {
+      final file = await _getDataFile();
+      if (await file.exists()) {
+        await file.delete();
+        _cachedData = null;
+        _cacheTimestamp = null;
+        Logger.info('All race data cleared', tag: 'DataService');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      Logger.error('Error clearing data', tag: 'DataService', error: e);
+      return false;
+    }
+  }
+
+  /// Get data statistics for debugging
+  Future<Map<String, dynamic>> getDataStats() async {
+    try {
+      final data = await loadAllRaceData();
+      final file = await _getDataFile();
+      final fileSize = await file.exists() ? await file.length() : 0;
+
+      return {
+        'totalRecords': data.length,
+        'fileSizeBytes': fileSize,
+        'cacheStatus': _cachedData != null ? 'cached' : 'not cached',
+        'dataFilePath': file.path,
+      };
+    } catch (e) {
+      return {'error': e.toString()};
+    }
   }
 }
