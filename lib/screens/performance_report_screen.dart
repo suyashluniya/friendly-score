@@ -171,11 +171,18 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
                       size: 16,
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      'Showing: $selectedMode • $selectedTimeframe',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.blue.shade700,
-                        fontWeight: FontWeight.w500,
+                    // Expanded prevents tiny horizontal overflows when the combined
+                    // intrinsic widths of the icon + spacing + text exceed the
+                    // available Row width by a fractional pixel. Ellipsis keeps layout tidy.
+                    Expanded(
+                      child: Text(
+                        'Showing: $selectedMode • $selectedTimeframe',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],

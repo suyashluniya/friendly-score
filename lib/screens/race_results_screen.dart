@@ -1,3 +1,5 @@
+import 'package:demo/services/location_service.dart';
+import 'package:demo/services/mode_service.dart';
 import 'package:flutter/material.dart';
 import 'rider_details_screen.dart';
 import '../services/unified_race_data_service.dart';
@@ -298,19 +300,34 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                       Colors.purple.shade600,
                     ),
                     const Divider(height: 20),
-                    _buildDetailRow(
-                      context,
-                      Icons.location_on,
-                      'Location',
-                      'Event Location',
-                      Colors.green.shade600,
+                    FutureBuilder<Map<String, dynamic>?>(
+                      future: LocationService().loadLocation(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData && snapshot.data != null) {
+                          final location = snapshot.data!;
+                          final locationDisplay = '${location['locationName']} - ${location['address']}';
+                          return Column(
+                            children: [
+                              _buildDetailRow(
+                                context,
+                                Icons.location_on,
+                                'Location',
+                                locationDisplay,
+                                Colors.green.shade600,
+                              ),
+                              const Divider(height: 20),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
                     ),
                     const Divider(height: 20),
                     _buildDetailRow(
                       context,
                       Icons.sports,
                       'Mode',
-                      'Training Mode',
+                      ModeService().getModeDisplayName(),
                       Colors.orange.shade600,
                     ),
                     if (widget.additionalDetails.isNotEmpty) ...[
