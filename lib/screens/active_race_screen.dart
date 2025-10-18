@@ -124,6 +124,11 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
       print('✅ Race completed in ${_formatTime(elapsedSeconds)} (internal timer)');
     }
 
+    // Determine if race was successful by comparing elapsed time with max time
+    final isSuccess = timeData['totalSeconds']! <= _maxTimeSeconds;
+    
+    print('🏁 Race result: ${isSuccess ? "COMPLETED" : "TIME EXCEEDED"} - Elapsed: ${timeData['totalSeconds']}s, Max: ${_maxTimeSeconds}s');
+
     // Navigate to results screen
     if (mounted) {
       Navigator.of(context).pushReplacementNamed(
@@ -140,7 +145,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
           'horseName': widget.horseName,
           'horseId': widget.horseId,
           'additionalDetails': widget.additionalDetails,
-          'isSuccess': true,
+          'isSuccess': isSuccess,
         },
       );
     }
