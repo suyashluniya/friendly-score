@@ -440,6 +440,10 @@ class MyApp extends StatelessWidget {
           return MaterialPageRoute(
             builder: (_) => RaceResultsScreen(
               elapsedSeconds: args['elapsedSeconds'] as int,
+              elapsedHours: args['elapsedHours'] as int? ?? 0,
+              elapsedMinutes: args['elapsedMinutes'] as int? ?? 0,
+              elapsedSecondsOnly: args['elapsedSecondsOnly'] as int? ?? 0,
+              elapsedMilliseconds: args['elapsedMilliseconds'] as int? ?? 0,
               maxSeconds: args['maxSeconds'] as int,
               riderName: args['riderName'] as String,
               eventName: args['eventName'] as String,

@@ -10,6 +10,10 @@ class RaceResultsScreen extends StatefulWidget {
   const RaceResultsScreen({
     super.key,
     required this.elapsedSeconds,
+    this.elapsedHours = 0,
+    this.elapsedMinutes = 0,
+    this.elapsedSecondsOnly = 0,
+    this.elapsedMilliseconds = 0,
     required this.maxSeconds,
     required this.riderName,
     required this.eventName,
@@ -22,6 +26,10 @@ class RaceResultsScreen extends StatefulWidget {
   static const routeName = '/race-results';
 
   final int elapsedSeconds;
+  final int elapsedHours;
+  final int elapsedMinutes;
+  final int elapsedSecondsOnly;
+  final int elapsedMilliseconds;
   final int maxSeconds;
   final String riderName;
   final String eventName;
@@ -82,7 +90,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
           'horseId': widget.horseId,
         },
         'result': {
-          'elapsedTime': _formatTime(widget.elapsedSeconds),
+          'elapsedTime': _formatTimeWithMilliseconds(),
           'elapsedSeconds': widget.elapsedSeconds,
           'maxTime': _formatTime(widget.maxSeconds),
           'maxSeconds': widget.maxSeconds,
@@ -226,11 +234,11 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      _formatTime(widget.elapsedSeconds),
+                      _formatTimeWithMilliseconds(),
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 48,
+                        fontSize: 42, // Slightly smaller to fit milliseconds
                         shadows: [
                           Shadow(
                             color: Colors.black.withOpacity(0.2),
@@ -475,6 +483,36 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
       return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
     } else {
       return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    }
+  }
+
+  String _formatTimeWithMilliseconds() {
+    // Use the detailed time data if available, otherwise fall back to parsing elapsedSeconds
+    if (widget.elapsedHours > 0 || widget.elapsedMinutes > 0 || widget.elapsedSecondsOnly > 0 || widget.elapsedMilliseconds > 0) {
+      // Always take only the first 2 digits of milliseconds, regardless of length
+      final millisStr = widget.elapsedMilliseconds.toString();
+      final millis = millisStr.length >= 2 
+          ? millisStr.substring(0, 2) 
+          : millisStr.padLeft(2, '0');
+      
+      // Don't show hours if they are 00
+      if (widget.elapsedHours > 0) {
+        return '${widget.elapsedHours.toString().padLeft(2, '0')}:${widget.elapsedMinutes.toString().padLeft(2, '0')}:${widget.elapsedSecondsOnly.toString().padLeft(2, '0')}:$millis';
+      } else {
+        return '${widget.elapsedMinutes.toString().padLeft(2, '0')}:${widget.elapsedSecondsOnly.toString().padLeft(2, '0')}:$millis';
+      }
+    } else {
+      // Fallback for backward compatibility
+      int hours = widget.elapsedSeconds ~/ 3600;
+      int minutes = (widget.elapsedSeconds % 3600) ~/ 60;
+      int secs = widget.elapsedSeconds % 60;
+      
+      // Don't show hours if they are 0
+      if (hours > 0) {
+        return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}:00';
+      } else {
+        return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}:00';
+      }
     }
   }
 }
