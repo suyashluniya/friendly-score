@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'rider_details_screen.dart';
+import '../services/location_service.dart';
+import '../services/mode_service.dart';
 
 class RaceResultsScreen extends StatefulWidget {
   const RaceResultsScreen({
@@ -41,6 +43,13 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
     });
 
     try {
+      // Get location and mode services
+      final locationService = LocationService();
+      final modeService = ModeService();
+      
+      // Load current location data
+      final locationData = await locationService.loadLocation();
+
       // Get the application documents directory
       final directory = await getApplicationDocumentsDirectory();
 
@@ -55,15 +64,23 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
       final fileName = 'race_${widget.riderName.replaceAll(' ', '_')}_$timestamp.json';
       final file = File('${raceResultsDir.path}/$fileName');
 
-      // Prepare race data
+      // Prepare race data with location and mode
       final raceData = {
         'timestamp': DateTime.now().toIso8601String(),
+        'event': {
+          'name': widget.eventName,
+          'mode': modeService.getModeDisplayName(),
+          'location': locationData != null ? {
+            'name': locationData['locationName'] ?? 'Unknown Location',
+            'address': locationData['address'] ?? 'No address',
+            'additionalDetails': locationData['additionalDetails'] ?? '',
+          } : null,
+        },
         'rider': {
           'name': widget.riderName,
           'horseName': widget.horseName,
           'horseId': widget.horseId,
         },
-        'event': widget.eventName,
         'result': {
           'elapsedTime': _formatTime(widget.elapsedSeconds),
           'elapsedSeconds': widget.elapsedSeconds,
@@ -291,6 +308,36 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                       'Event',
                       widget.eventName,
                       Colors.purple.shade600,
+                    ),
+                    const Divider(height: 20),
+                    FutureBuilder<Map<String, dynamic>?>(
+                      future: LocationService().loadLocation(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData && snapshot.data != null) {
+                          final location = snapshot.data!;
+                          final locationDisplay = '${location['locationName']} - ${location['address']}';
+                          return Column(
+                            children: [
+                              _buildDetailRow(
+                                context,
+                                Icons.location_on,
+                                'Location',
+                                locationDisplay,
+                                Colors.green.shade600,
+                              ),
+                              const Divider(height: 20),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                    _buildDetailRow(
+                      context,
+                      Icons.sports,
+                      'Mode',
+                      ModeService().getModeDisplayName(),
+                      Colors.orange.shade600,
                     ),
                     if (widget.additionalDetails.isNotEmpty) ...[
                       const Divider(height: 20),

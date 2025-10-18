@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'mode_selection_screen.dart';
+import 'event_location_screen.dart';
 
 /// PIN login screen that appears before the main app
 class PinLoginScreen extends StatefulWidget {
@@ -39,9 +39,9 @@ class _PinLoginScreenState extends State<PinLoginScreen> {
     final enteredPinString = _enteredPin.join();
 
     if (enteredPinString == PinLoginScreen.correctPin) {
-      // Correct PIN - navigate to main app
+      // Correct PIN - navigate to event location screen
       HapticFeedback.mediumImpact();
-      Navigator.of(context).pushReplacementNamed(ModeSelectionScreen.routeName);
+      Navigator.of(context).pushReplacementNamed(EventLocationScreen.routeName);
     } else {
       // Wrong PIN - show error and reset
       HapticFeedback.heavyImpact();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/pin_login_screen.dart';
+import 'screens/event_location_screen.dart';
 import 'screens/mode_selection_screen.dart';
 import 'screens/jumping_screen.dart';
 import 'screens/top_score_screen.dart';
@@ -453,6 +454,7 @@ class MyApp extends StatelessWidget {
       },
       routes: {
         PinLoginScreen.routeName: (_) => const PinLoginScreen(),
+        EventLocationScreen.routeName: (_) => const EventLocationScreen(),
         ModeSelectionScreen.routeName: (_) => const ModeSelectionScreen(),
         JumpingScreen.routeName: (_) => const JumpingScreen(),
         MountainSportScreen.routeName: (_) => const MountainSportScreen(),

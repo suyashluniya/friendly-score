@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../services/mode_service.dart';
 
 /// First screen of the app allowing user to pick a sport mode.
 class ModeSelectionScreen extends StatelessWidget {
@@ -57,6 +57,7 @@ class ModeSelectionScreen extends StatelessWidget {
                             heroTag: 'mode-jumping',
                             route: '/jumping',
                             color: const Color(0xFF0066FF),
+                            mode: ModeService.showJumping,
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -68,6 +69,7 @@ class ModeSelectionScreen extends StatelessWidget {
                             heroTag: 'mode-mountain',
                             route: '/mountain',
                             color: const Color(0xFF10B981),
+                            mode: ModeService.mountedSports,
                           ),
                         ),
                       ],
@@ -92,6 +94,7 @@ class _ModeButton extends StatelessWidget {
     required this.heroTag,
     required this.route,
     required this.color,
+    required this.mode,
   });
 
   final String label;
@@ -100,6 +103,7 @@ class _ModeButton extends StatelessWidget {
   final String heroTag;
   final String route;
   final Color color;
+  final String mode;
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +126,11 @@ class _ModeButton extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(24),
-            onTap: () => Navigator.pushNamed(context, route),
+            onTap: () {
+              // Set the selected mode
+              ModeService().setMode(mode);
+              Navigator.pushNamed(context, route);
+            },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: Row(
