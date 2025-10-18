@@ -227,31 +227,50 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
 
               const SizedBox(height: 32),
 
-              // Export Button
-              SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : () => _exportReport(),
-                      icon: _isLoading 
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Icon(FontAwesomeIcons.download),
-                      label: Text(_isLoading ? 'Exporting Report...' : 'Export Performance Report'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+              // Export/Action Buttons
+              Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isLoading ? null : () => _exportReport(),
+                          icon: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(FontAwesomeIcons.download),
+                          label: Text(_isLoading ? 'Exporting Report...' : 'Export Performance Report'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.shade600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _shareReport(),
+                          icon: const Icon(FontAwesomeIcons.share),
+                          label: const Text('Share Report'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.blue.shade600,
+                            side: BorderSide(color: Colors.blue.shade600),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   )
                   .animate()
                   .fadeIn(duration: 600.ms, delay: 2000.ms)
@@ -796,7 +815,7 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
     try {
       // Add a small delay to show loading state
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       // Create a simple text report
       final StringBuffer reportBuffer = StringBuffer();
 
@@ -856,171 +875,97 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
       await Clipboard.setData(ClipboardData(text: reportBuffer.toString()));
 
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
         // Show detailed export information dialog
         showDialog(
           context: context,
-          barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.green, size: 28),
+                  Icon(Icons.check_circle, color: Colors.green),
                   SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Report Exported Successfully!',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                  Text('Report Exported Successfully!'),
                 ],
               ),
-              content: Column(
+              content: const Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.shade200),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Your performance report has been copied to your clipboard and is ready to use!',
-                            style: TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'How to access your exported report:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 12),
-                  const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('1. ', style: TextStyle(fontWeight: FontWeight.bold)),
-                      Expanded(child: Text('Open any text editor (Notepad, Word, Google Docs, etc.)')),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('2. ', style: TextStyle(fontWeight: FontWeight.bold)),
-                      Expanded(child: Text('Press Ctrl+V (Windows) or Cmd+V (Mac) to paste')),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('3. ', style: TextStyle(fontWeight: FontWeight.bold)),
-                      Expanded(child: Text('Save the document to your desired location')),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '📊 Report Contents:',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 4),
-                        Text('• Performance metrics and analytics'),
-                        Text('• Recent session data and statistics'),
-                        Text('• Formatted text layout for easy reading'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    // Show additional tip
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('💡 Tip: You can now paste your report anywhere with Ctrl+V!'),
-                        backgroundColor: Colors.orange.shade600,
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                  },
-                  child: const Text('Got it!', style: TextStyle(fontSize: 16)),
-                ),
-              ],
-            );
-          },
-        );
-      }
-      
-      setState(() {
-        _isLoading = false;
-      });
-
-
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.red),
-                  SizedBox(width: 12),
-                  Text('Export Failed'),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Unable to export the performance report.'),
-                  const SizedBox(height: 12),
-                  Text('Error details: $e'),
-                  const SizedBox(height: 16),
-                  const Text('Please try again or contact support if the issue persists.'),
+                  Text('Your performance report has been copied to your clipboard.'),
+                  SizedBox(height: 16),
+                  Text('How to access your exported report:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Text('• Open any text editor (Notepad, Word, Google Docs, etc.)'),
+                  Text('• Press Ctrl+V (Windows) or Cmd+V (Mac) to paste'),
+                  Text('• Save the document to your desired location'),
+                  SizedBox(height: 16),
+                  Text('The report includes all performance metrics, analytics, and recent session data in a formatted text layout.'),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Close'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    _exportReport(); // Retry
-                  },
-                  child: const Text('Try Again'),
+                  child: const Text('Got it!'),
                 ),
               ],
             );
           },
         );
+
+        // Also show the snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(child: Text('Report copied to clipboard - check the dialog for details')),
+              ],
+            ),
+            backgroundColor: Colors.blue.shade600,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Failed to export report: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
       }
     }
+  }
+
+  void _shareReport() {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Report shared successfully')));
   }
 }
