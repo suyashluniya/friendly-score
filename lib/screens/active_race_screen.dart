@@ -92,25 +92,48 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
       if (message.contains('STOP')) {
         print('🏁 STOP signal received - Race finished!');
-        _handleRaceComplete();
+        _handleRaceComplete(message);
       }
     });
   }
 
-  void _handleRaceComplete() {
+  void _handleRaceComplete([String? stopMessage]) {
     _timer.cancel();
 
-    final elapsedTime = DateTime.now().difference(_startTime);
-    final elapsedSeconds = elapsedTime.inSeconds;
-
-    print('✅ Race completed in ${_formatTime(elapsedSeconds)}');
+    Map<String, int> timeData;
+    
+    if (stopMessage != null && stopMessage.contains('STOP,')) {
+      // Parse time from ESP32 message: STOP,12:34:34:456
+      timeData = _parseTimeDataFromStopMessage(stopMessage);
+      print('✅ Race completed in time from ESP32: ${timeData['hours']}:${timeData['minutes']}:${timeData['seconds']}:${timeData['milliseconds']}');
+    } else {
+      // Fallback to app's internal timer
+      final elapsedTime = DateTime.now().difference(_startTime);
+      final elapsedSeconds = elapsedTime.inSeconds;
+      final hours = elapsedSeconds ~/ 3600;
+      final minutes = (elapsedSeconds % 3600) ~/ 60;
+      final seconds = elapsedSeconds % 60;
+      
+      timeData = {
+        'hours': hours,
+        'minutes': minutes,
+        'seconds': seconds,
+        'milliseconds': 0, // No milliseconds from internal timer
+        'totalSeconds': elapsedSeconds,
+      };
+      print('✅ Race completed in ${_formatTime(elapsedSeconds)} (internal timer)');
+    }
 
     // Navigate to results screen
     if (mounted) {
       Navigator.of(context).pushReplacementNamed(
         RaceResultsScreen.routeName,
         arguments: {
-          'elapsedSeconds': elapsedSeconds,
+          'elapsedSeconds': timeData['totalSeconds'],
+          'elapsedHours': timeData['hours'],
+          'elapsedMinutes': timeData['minutes'],
+          'elapsedSecondsOnly': timeData['seconds'],
+          'elapsedMilliseconds': timeData['milliseconds'],
           'maxSeconds': _maxTimeSeconds,
           'riderName': widget.riderName,
           'eventName': widget.eventName,
@@ -123,6 +146,74 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     }
   }
 
+  Map<String, int> _parseTimeDataFromStopMessage(String message) {
+    try {
+      // Extract time part from "STOP,12:34:34:456"
+      final parts = message.split(',');
+      if (parts.length >= 2) {
+        final timeString = parts[1].trim();
+        
+        // Parse format: HH:MM:SS:mmm (hours:minutes:seconds:milliseconds)
+        final timeParts = timeString.split(':');
+        if (timeParts.length == 4) {
+          final hours = int.parse(timeParts[0]);
+          final minutes = int.parse(timeParts[1]);
+          final seconds = int.parse(timeParts[2]);
+          final milliseconds = int.parse(timeParts[3]);
+          
+          final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+          print('🕒 Parsed time: ${hours}h ${minutes}m ${seconds}s ${milliseconds}ms = ${totalSeconds}s total');
+          
+          return {
+            'hours': hours,
+            'minutes': minutes,
+            'seconds': seconds,
+            'milliseconds': milliseconds,
+            'totalSeconds': totalSeconds,
+          };
+        } else if (timeParts.length == 3) {
+          // Fallback for old format: HH:MM:SSS or MM:SS:SSS
+          final hours = int.parse(timeParts[0]);
+          final minutes = int.parse(timeParts[1]);
+          final secondsAndMillis = timeParts[2];
+          
+          // Handle seconds with milliseconds (e.g., "555" means 55.5 seconds)
+          final seconds = int.parse(secondsAndMillis) ~/ 10; // Convert 555 to 55 seconds
+          final milliseconds = (int.parse(secondsAndMillis) % 10) * 100; // Approximate milliseconds
+          
+          final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+          print('🕒 Parsed time (old format): ${hours}h ${minutes}m ${seconds}s ${milliseconds}ms = ${totalSeconds}s total');
+          
+          return {
+            'hours': hours,
+            'minutes': minutes,
+            'seconds': seconds,
+            'milliseconds': milliseconds,
+            'totalSeconds': totalSeconds,
+          };
+        }
+      }
+    } catch (e) {
+      print('❌ Error parsing time from message: $message - $e');
+    }
+    
+    // Fallback to internal timer if parsing fails
+    print('⚠️ Could not parse time from message: $message, using internal timer');
+    final elapsedTime = DateTime.now().difference(_startTime);
+    final elapsedSeconds = elapsedTime.inSeconds;
+    final hours = elapsedSeconds ~/ 3600;
+    final minutes = (elapsedSeconds % 3600) ~/ 60;
+    final seconds = elapsedSeconds % 60;
+    
+    return {
+      'hours': hours,
+      'minutes': minutes,
+      'seconds': seconds,
+      'milliseconds': 0,
+      'totalSeconds': elapsedSeconds,
+    };
+  }
+
   void _handleTimeExpired() {
     _timer.cancel();
 
@@ -130,10 +221,18 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
     // Navigate to results screen showing time exceeded
     if (mounted) {
+      final hours = _maxTimeSeconds ~/ 3600;
+      final minutes = (_maxTimeSeconds % 3600) ~/ 60;
+      final seconds = _maxTimeSeconds % 60;
+      
       Navigator.of(context).pushReplacementNamed(
         RaceResultsScreen.routeName,
         arguments: {
           'elapsedSeconds': _maxTimeSeconds,
+          'elapsedHours': hours,
+          'elapsedMinutes': minutes,
+          'elapsedSecondsOnly': seconds,
+          'elapsedMilliseconds': 0,
           'maxSeconds': _maxTimeSeconds,
           'riderName': widget.riderName,
           'eventName': widget.eventName,

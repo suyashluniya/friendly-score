@@ -237,8 +237,9 @@ class _TimerStartScreenState extends State<TimerStartScreen>
       print('▶️ Received START signal from ESP32');
       // TODO: Start your timer logic here
     } else if (message.contains('STOP')) {
-      print('⏹️ Received STOP signal from ESP32');
-      // TODO: Stop your timer logic here
+      print('⏹️ Received STOP signal with time data from ESP32: $message');
+      // STOP signal received at timer start screen - log it for debugging
+      // The main STOP handling happens in ActiveRaceScreen
     } else if (message.contains('ACK')) {
       print('✅ ESP32 acknowledged connection');
     } else {
