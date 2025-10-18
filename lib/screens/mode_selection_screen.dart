@@ -74,7 +74,8 @@ class ModeSelectionScreen extends StatelessWidget {
                         Flexible(
                           child: _ModeButton(
                             label: 'Reports & Analytics',
-                            description: 'Performance insights and data analysis',
+                            description:
+                                'Performance insights and data analysis',
                             icon: FontAwesomeIcons.chartLine,
                             heroTag: 'mode-reporting',
                             route: '/reporting',
