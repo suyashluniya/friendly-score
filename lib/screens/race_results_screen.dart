@@ -40,6 +40,7 @@ class RaceResultsScreen extends StatefulWidget {
 
 class _RaceResultsScreenState extends State<RaceResultsScreen> {
   bool _isSaving = false;
+  bool _isSaved = false;
 
   Future<void> _saveRaceData() async {
     setState(() {
@@ -48,7 +49,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
 
     try {
       final dataService = UnifiedRaceDataService();
-      
+
       final success = await dataService.saveRaceData(
         riderName: widget.riderName,
         eventName: widget.eventName,
@@ -66,6 +67,9 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
         });
 
         if (success) {
+          setState(() {
+            _isSaved = true;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Row(
@@ -90,7 +94,9 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                 children: [
                   Icon(Icons.error_outline, color: Colors.white),
                   SizedBox(width: 12),
-                  Expanded(child: Text('Failed to save race data. Please try again.')),
+                  Expanded(
+                    child: Text('Failed to save race data. Please try again.'),
+                  ),
                 ],
               ),
               backgroundColor: Colors.red.shade600,
@@ -327,21 +333,42 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _isSaving ? null : _saveRaceData,
-                      icon: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                    child: Tooltip(
+                      message: _isSaved
+                          ? 'Race data has already been saved to prevent duplicates'
+                          : 'Save this race data to the unified database',
+                      child: ElevatedButton.icon(
+                        onPressed: (_isSaving || _isSaved)
+                            ? null
+                            : _saveRaceData,
+                        icon: _isSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
-                              ),
-                            )
-                          : const Icon(Icons.save_outlined),
-                      label: Text(_isSaving ? 'SAVING...' : 'SAVE'),
+                              )
+                            : _isSaved
+                            ? const Icon(Icons.check_circle_outline)
+                            : const Icon(Icons.save_outlined),
+                        label: Text(
+                          _isSaving
+                              ? 'SAVING...'
+                              : _isSaved
+                              ? 'SAVED'
+                              : 'SAVE',
+                        ),
+                        style: _isSaved
+                            ? ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green.shade600,
+                                foregroundColor: Colors.white,
+                              )
+                            : null,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -451,13 +478,16 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
 
   String _formatTimeWithMilliseconds() {
     // Use the detailed time data if available, otherwise fall back to parsing elapsedSeconds
-    if (widget.elapsedHours > 0 || widget.elapsedMinutes > 0 || widget.elapsedSecondsOnly > 0 || widget.elapsedMilliseconds > 0) {
+    if (widget.elapsedHours > 0 ||
+        widget.elapsedMinutes > 0 ||
+        widget.elapsedSecondsOnly > 0 ||
+        widget.elapsedMilliseconds > 0) {
       // Always take only the first 2 digits of milliseconds, regardless of length
       final millisStr = widget.elapsedMilliseconds.toString();
-      final millis = millisStr.length >= 2 
-          ? millisStr.substring(0, 2) 
+      final millis = millisStr.length >= 2
+          ? millisStr.substring(0, 2)
           : millisStr.padLeft(2, '0');
-      
+
       // Don't show hours if they are 00
       if (widget.elapsedHours > 0) {
         return '${widget.elapsedHours.toString().padLeft(2, '0')}:${widget.elapsedMinutes.toString().padLeft(2, '0')}:${widget.elapsedSecondsOnly.toString().padLeft(2, '0')}:$millis';
@@ -469,7 +499,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
       int hours = widget.elapsedSeconds ~/ 3600;
       int minutes = (widget.elapsedSeconds % 3600) ~/ 60;
       int secs = widget.elapsedSeconds % 60;
-      
+
       // Don't show hours if they are 0
       if (hours > 0) {
         return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}:00';
