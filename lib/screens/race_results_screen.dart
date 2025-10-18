@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'rider_details_screen.dart';
-import '../services/location_service.dart';
-import '../services/mode_service.dart';
-import 'dart:convert';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+import '../services/unified_race_data_service.dart';
 
 class RaceResultsScreen extends StatefulWidget {
   const RaceResultsScreen({
@@ -51,105 +47,86 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
     });
 
     try {
-      // Get location and mode services
-      final locationService = LocationService();
-      final modeService = ModeService();
+      final dataService = UnifiedRaceDataService();
       
-      // Load current location data
-      final locationData = await locationService.loadLocation();
-
-      // Get the application documents directory
-      final directory = await getApplicationDocumentsDirectory();
-
-      // Create race_results folder if it doesn't exist
-      final raceResultsDir = Directory('${directory.path}/race_results');
-      if (!await raceResultsDir.exists()) {
-        await raceResultsDir.create(recursive: true);
-      }
-
-      // Create filename with timestamp
-      final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
-      final fileName = 'race_${widget.riderName.replaceAll(' ', '_')}_$timestamp.json';
-      final file = File('${raceResultsDir.path}/$fileName');
-
-      // Prepare race data with location and mode
-      final raceData = {
-        'timestamp': DateTime.now().toIso8601String(),
-        'event': {
-          'name': widget.eventName,
-          'mode': modeService.getModeDisplayName(),
-          'location': locationData != null ? {
-            'name': locationData['locationName'] ?? 'Unknown Location',
-            'address': locationData['address'] ?? 'No address',
-            'additionalDetails': locationData['additionalDetails'] ?? '',
-          } : null,
-        },
-        'rider': {
-          'name': widget.riderName,
-          'horseName': widget.horseName,
-          'horseId': widget.horseId,
-        },
-        'result': {
-          'elapsedTime': _formatTimeWithMilliseconds(),
-          'elapsedSeconds': widget.elapsedSeconds,
-          'maxTime': _formatTime(widget.maxSeconds),
-          'maxSeconds': widget.maxSeconds,
-          'isSuccess': widget.isSuccess,
-          'status': widget.isSuccess ? 'Completed' : 'Time Exceeded',
-        },
-        'additionalDetails': widget.additionalDetails,
-      };
-
-      // Write to file
-      await file.writeAsString(
-        const JsonEncoder.withIndent('  ').convert(raceData),
+      final success = await dataService.saveRaceData(
+        riderName: widget.riderName,
+        eventName: widget.eventName,
+        horseName: widget.horseName,
+        horseId: widget.horseId,
+        additionalDetails: widget.additionalDetails,
+        elapsedSeconds: widget.elapsedSeconds,
+        maxSeconds: widget.maxSeconds,
+        isSuccess: widget.isSuccess,
       );
 
-      print('✅ Race data saved to: ${file.path}');
-
       if (mounted) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text('Race data saved successfully!\n${file.path}'),
-                ),
-              ],
+        setState(() {
+          _isSaving = false;
+        });
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('Race data saved to unified database!')),
+                ],
+              ),
+              backgroundColor: Colors.green.shade600,
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            backgroundColor: const Color(0xFF10B981),
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('Failed to save race data. Please try again.')),
+                ],
+              ),
+              backgroundColor: Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
-      print('❌ Error saving race data: $e');
-
+      print('Error saving race data: $e');
       if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 const Icon(Icons.error_outline, color: Colors.white),
                 const SizedBox(width: 12),
-                Expanded(child: Text('Failed to save: $e')),
+                Expanded(child: Text('Error saving data: $e')),
               ],
             ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red.shade600,
             behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
       }
     }
   }
@@ -315,33 +292,19 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                       Colors.purple.shade600,
                     ),
                     const Divider(height: 20),
-                    FutureBuilder<Map<String, dynamic>?>(
-                      future: LocationService().loadLocation(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData && snapshot.data != null) {
-                          final location = snapshot.data!;
-                          final locationDisplay = '${location['locationName']} - ${location['address']}';
-                          return Column(
-                            children: [
-                              _buildDetailRow(
-                                context,
-                                Icons.location_on,
-                                'Location',
-                                locationDisplay,
-                                Colors.green.shade600,
-                              ),
-                              const Divider(height: 20),
-                            ],
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
+                    _buildDetailRow(
+                      context,
+                      Icons.location_on,
+                      'Location',
+                      'Event Location',
+                      Colors.green.shade600,
                     ),
+                    const Divider(height: 20),
                     _buildDetailRow(
                       context,
                       Icons.sports,
                       'Mode',
-                      ModeService().getModeDisplayName(),
+                      'Training Mode',
                       Colors.orange.shade600,
                     ),
                     if (widget.additionalDetails.isNotEmpty) ...[
