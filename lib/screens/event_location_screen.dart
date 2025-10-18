@@ -70,11 +70,23 @@ class _EventLocationScreenState extends State<EventLocationScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
+          // Title Row: keep simple (no LayoutBuilder) because AlertDialog measures
+          // intrinsic dimensions. LayoutBuilder inside title causes intrinsic
+          // dimension exceptions. Using Flexible lets text wrap within dialog width.
           title: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.location_on, color: Colors.blue.shade600),
               const SizedBox(width: 12),
-              const Text('Current Event Location'),
+              Flexible(
+                child: Text(
+                  'Current Event Location',
+                  style: Theme.of(context).textTheme.titleMedium,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                ),
+              ),
             ],
           ),
           content: Column(
