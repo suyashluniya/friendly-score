@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'rider_details_screen.dart';
 import '../services/location_service.dart';
 import '../services/mode_service.dart';
-import '../services/unified_race_data_service.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class RaceResultsScreen extends StatefulWidget {
   const RaceResultsScreen({
@@ -41,30 +43,63 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
     });
 
     try {
-      // Use the unified race data service
-      final unifiedDataService = UnifiedRaceDataService();
+      // Get location and mode services
+      final locationService = LocationService();
+      final modeService = ModeService();
+      
+      // Load current location data
+      final locationData = await locationService.loadLocation();
 
-      final success = await unifiedDataService.saveRaceData(
-        riderName: widget.riderName,
-        eventName: widget.eventName,
-        horseName: widget.horseName,
-        horseId: widget.horseId,
-        additionalDetails: widget.additionalDetails,
-        elapsedSeconds: widget.elapsedSeconds,
-        maxSeconds: widget.maxSeconds,
-        isSuccess: widget.isSuccess,
-      );
+      // Get the application documents directory
+      final directory = await getApplicationDocumentsDirectory();
 
-      if (!success) {
-        throw Exception('Failed to save race data to unified storage');
+      // Create race_results folder if it doesn't exist
+      final raceResultsDir = Directory('${directory.path}/race_results');
+      if (!await raceResultsDir.exists()) {
+        await raceResultsDir.create(recursive: true);
       }
 
-      print('✅ Race data saved to unified storage');
+      // Create filename with timestamp
+      final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+      final fileName = 'race_${widget.riderName.replaceAll(' ', '_')}_$timestamp.json';
+      final file = File('${raceResultsDir.path}/$fileName');
+
+      // Prepare race data with location and mode
+      final raceData = {
+        'timestamp': DateTime.now().toIso8601String(),
+        'event': {
+          'name': widget.eventName,
+          'mode': modeService.getModeDisplayName(),
+          'location': locationData != null ? {
+            'name': locationData['locationName'] ?? 'Unknown Location',
+            'address': locationData['address'] ?? 'No address',
+            'additionalDetails': locationData['additionalDetails'] ?? '',
+          } : null,
+        },
+        'rider': {
+          'name': widget.riderName,
+          'horseName': widget.horseName,
+          'horseId': widget.horseId,
+        },
+        'result': {
+          'elapsedTime': _formatTime(widget.elapsedSeconds),
+          'elapsedSeconds': widget.elapsedSeconds,
+          'maxTime': _formatTime(widget.maxSeconds),
+          'maxSeconds': widget.maxSeconds,
+          'isSuccess': widget.isSuccess,
+          'status': widget.isSuccess ? 'Completed' : 'Time Exceeded',
+        },
+        'additionalDetails': widget.additionalDetails,
+      };
+
+      // Write to file
+      await file.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(raceData),
+      );
+
+      print('✅ Race data saved to: ${file.path}');
 
       if (mounted) {
-        // Get file path for display
-        final filePath = await unifiedDataService.getDataFilePath();
-
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -73,7 +108,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text('Race data saved to unified storage!\n$filePath'),
+                  child: Text('Race data saved successfully!\n${file.path}'),
                 ),
               ],
             ),
@@ -277,8 +312,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                       builder: (context, snapshot) {
                         if (snapshot.hasData && snapshot.data != null) {
                           final location = snapshot.data!;
-                          final locationDisplay =
-                              '${location['locationName']} - ${location['address']}';
+                          final locationDisplay = '${location['locationName']} - ${location['address']}';
                           return Column(
                             children: [
                               _buildDetailRow(

@@ -207,13 +207,25 @@ class _TimerStartScreenState extends State<TimerStartScreen>
     final btService = BluetoothService();
     final modeService = ModeService();
     
-    // Send mode instead of HELLO
-    String modeMessage = modeService.getModeForBluetooth();
-    bool sent = await btService.sendData(modeMessage);
-    if (sent) {
-      print('✅ Mode signal sent successfully to ESP32: $modeMessage');
+    // Map selected mode to protocol codes:
+    // SHOW_JUMPING -> d0,e0
+    // MOUNTED_SPORTS -> d0,e1
+    // Fallback / unknown -> d0,ff
+    final selected = modeService.getMode();
+    String payload;
+    if (selected == ModeService.showJumping) {
+      payload = 'd0,e0';
+    } else if (selected == ModeService.mountedSports) {
+      payload = 'd0,e1';
     } else {
-      print('❌ Failed to send mode signal');
+      payload = 'd0,ff';
+    }
+
+    bool sent = await btService.sendData(payload);
+    if (sent) {
+      print('✅ Mode signal sent successfully to ESP32: $payload (mode=$selected)');
+    } else {
+      print('❌ Failed to send mode signal (mode=$selected, payload=$payload)');
     }
   }
 

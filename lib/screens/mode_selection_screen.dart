@@ -65,22 +65,9 @@ class ModeSelectionScreen extends StatelessWidget {
                             description: 'Equestrian and mounted events',
                             icon: FontAwesomeIcons.hourglassHalf,
                             heroTag: 'mode-mountain',
-                            route: '/mountain',
+                            route: '/jumping',
                             color: const Color(0xFF10B981),
                             mode: ModeService.mountedSports,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Flexible(
-                          child: _ModeButton(
-                            label: 'Reports & Analytics',
-                            description:
-                                'Performance insights and data analysis',
-                            icon: FontAwesomeIcons.chartLine,
-                            heroTag: 'mode-reporting',
-                            route: '/reporting',
-                            color: const Color(0xFF8B5CF6),
-                            mode: 'reporting',
                           ),
                         ),
                       ],
