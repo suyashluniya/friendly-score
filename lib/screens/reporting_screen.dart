@@ -258,7 +258,7 @@ class _ReportingScreenState extends State<ReportingScreen> {
                 [
                   _ReportItem(
                     'Best Performers by Mode',
-                    'Top riders in Show Jumping & Mountain Sport',
+                    'Top riders in Show Jumping & Mounted Sports',
                     FontAwesomeIcons.medal,
                   ),
                   _ReportItem(
@@ -302,7 +302,7 @@ class _ReportingScreenState extends State<ReportingScreen> {
                   // ),
                   _ReportItem(
                     'Mode Statistics',
-                    'Show Jumping vs Mountain Sport analytics',
+                    'Show Jumping vs Mounted Sports analytics',
                     FontAwesomeIcons.chartPie,
                   ),
                   // _ReportItem(

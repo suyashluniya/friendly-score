@@ -2,7 +2,7 @@
 
 # Timing / Mode Selection Demo
 
-Lightweight Flutter application showcasing a polished Mode Selection flow (Jumping + Mountain Sports) with animated cards, nested option screens, themed typography (Google Fonts) and basic widget tests. Serves as a starter / reference for adding additional sport timing modes.
+Lightweight Flutter application showcasing a polished Mode Selection flow (Jumping + Mounted Sports) with animated cards, nested option screens, themed typography (Google Fonts) and basic widget tests. Serves as a starter / reference for adding additional sport timing modes.
 
 </div>
 
@@ -38,7 +38,7 @@ lib/
     jumping_screen.dart          # Secondary menu for jumping options
     top_score_screen.dart        # (Placeholder) Top score jumping mode
     normal_jumping_screen.dart   # (Placeholder) Normal jumping mode
-    mountain_sport_screen.dart   # (Placeholder) Mountain sport mode
+    mountain_sport_screen.dart   # (Placeholder) Mounted sport mode
 
 
 ---
@@ -51,7 +51,7 @@ lib/
 | `/jumping` | `JumpingScreen` | Jumping sub-mode menu |
 | `/jumping/top` | `TopScoreJumpingScreen` | Placeholder next screen |
 | `/jumping/normal` | `NormalJumpingScreen` | Placeholder next screen |
-| `/mountain` | `MountainSportScreen` | Placeholder mountain sport mode |
+| `/mountain` | `MountainSportScreen` | Placeholder mounted sport mode |
 
 These are registered in `MaterialApp.routes` inside `main.dart`.
 

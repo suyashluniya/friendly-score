@@ -983,7 +983,7 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
                 items: [
                   'All Modes',
                   'Show Jumping',
-                  'Mountain Sport',
+                  'Mounted Sports',
                 ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                 onChanged: (value) {
                   setDialogState(() {
