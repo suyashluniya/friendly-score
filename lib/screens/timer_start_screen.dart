@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'bluetooth_ready_screen.dart';
 import 'bluetooth_failed_screen.dart';
 import '../services/bluetooth_service.dart';
+import '../services/mode_service.dart';
 
 class TimerStartScreen extends StatefulWidget {
   const TimerStartScreen({
@@ -204,11 +205,15 @@ class _TimerStartScreenState extends State<TimerStartScreen>
 
   Future<void> _sendBeaconSignal() async {
     final btService = BluetoothService();
-    bool sent = await btService.sendData('HELLO');
+    final modeService = ModeService();
+    
+    // Send mode instead of HELLO
+    String modeMessage = modeService.getModeForBluetooth();
+    bool sent = await btService.sendData(modeMessage);
     if (sent) {
-      print('✅ Beacon signal sent successfully to ESP32');
+      print('✅ Mode signal sent successfully to ESP32: $modeMessage');
     } else {
-      print('❌ Failed to send beacon signal');
+      print('❌ Failed to send mode signal');
     }
   }
 

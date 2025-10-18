@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/pin_login_screen.dart';
+import 'screens/event_location_screen.dart';
 import 'screens/mode_selection_screen.dart';
 import 'screens/jumping_screen.dart';
 import 'screens/top_score_screen.dart';
@@ -14,10 +15,12 @@ import 'screens/bluetooth_ready_screen.dart';
 import 'screens/bluetooth_failed_screen.dart';
 import 'screens/active_race_screen.dart';
 import 'screens/race_results_screen.dart';
+import 'screens/reporting_screen.dart';
+import 'screens/performance_report_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Set system UI overlay style for modern look
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -27,7 +30,7 @@ void main() {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-  
+
   runApp(const MyApp());
 }
 
@@ -37,23 +40,23 @@ class AppColors {
   static const Color primary = Color(0xFF0066FF);
   static const Color primaryDark = Color(0xFF0052CC);
   static const Color primaryLight = Color(0xFF3385FF);
-  
+
   // Neutral colors - Clean grays
   static const Color background = Color(0xFFF8F9FA);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceVariant = Color(0xFFF1F3F5);
-  
+
   // Text colors
   static const Color textPrimary = Color(0xFF1A1D1F);
   static const Color textSecondary = Color(0xFF6C757D);
   static const Color textTertiary = Color(0xFF9FA6AD);
-  
+
   // Semantic colors
   static const Color success = Color(0xFF10B981);
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);
   static const Color info = Color(0xFF3B82F6);
-  
+
   // Border colors
   static const Color border = Color(0xFFE5E7EB);
   static const Color borderLight = Color(0xFFF3F4F6);
@@ -101,10 +104,10 @@ class MyApp extends StatelessWidget {
           onSurfaceVariant: AppColors.textSecondary,
           outline: AppColors.border,
         ),
-        
+
         scaffoldBackgroundColor: AppColors.background,
         useMaterial3: true,
-        
+
         // Typography
         textTheme: GoogleFonts.interTextTheme().copyWith(
           // Display styles
@@ -124,7 +127,7 @@ class MyApp extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
-          
+
           // Headline styles
           headlineLarge: GoogleFonts.inter(
             fontSize: 32,
@@ -141,7 +144,7 @@ class MyApp extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
-          
+
           // Title styles
           titleLarge: GoogleFonts.inter(
             fontSize: 20,
@@ -160,7 +163,7 @@ class MyApp extends StatelessWidget {
             letterSpacing: 0.1,
             color: AppColors.textPrimary,
           ),
-          
+
           // Body styles
           bodyLarge: GoogleFonts.inter(
             fontSize: 16,
@@ -180,7 +183,7 @@ class MyApp extends StatelessWidget {
             letterSpacing: 0.4,
             color: AppColors.textTertiary,
           ),
-          
+
           // Label styles
           labelLarge: GoogleFonts.inter(
             fontSize: 14,
@@ -201,7 +204,7 @@ class MyApp extends StatelessWidget {
             color: AppColors.textTertiary,
           ),
         ),
-        
+
         // AppBar Theme
         appBarTheme: AppBarTheme(
           elevation: 0,
@@ -221,7 +224,7 @@ class MyApp extends StatelessWidget {
             size: 24,
           ),
         ),
-        
+
         // Button Themes
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -244,7 +247,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        
+
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.textPrimary,
@@ -253,10 +256,7 @@ class MyApp extends StatelessWidget {
               vertical: AppSpacing.md,
             ),
             minimumSize: const Size(0, 52),
-            side: const BorderSide(
-              color: AppColors.border,
-              width: 1.5,
-            ),
+            side: const BorderSide(color: AppColors.border, width: 1.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
@@ -267,7 +267,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        
+
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: AppColors.primary,
@@ -282,7 +282,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        
+
         // Card Theme
         cardTheme: CardThemeData(
           color: AppColors.surface,
@@ -290,14 +290,11 @@ class MyApp extends StatelessWidget {
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            side: const BorderSide(
-              color: AppColors.borderLight,
-              width: 1,
-            ),
+            side: const BorderSide(color: AppColors.borderLight, width: 1),
           ),
           margin: EdgeInsets.zero,
         ),
-        
+
         // Input Decoration Theme
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -337,7 +334,7 @@ class MyApp extends StatelessWidget {
             color: AppColors.textTertiary,
           ),
         ),
-        
+
         // Divider Theme
         dividerTheme: const DividerThemeData(
           color: AppColors.borderLight,
@@ -453,11 +450,15 @@ class MyApp extends StatelessWidget {
       },
       routes: {
         PinLoginScreen.routeName: (_) => const PinLoginScreen(),
+        EventLocationScreen.routeName: (_) => const EventLocationScreen(),
         ModeSelectionScreen.routeName: (_) => const ModeSelectionScreen(),
         JumpingScreen.routeName: (_) => const JumpingScreen(),
         MountainSportScreen.routeName: (_) => const MountainSportScreen(),
         TopScoreJumpingScreen.routeName: (_) => const TopScoreJumpingScreen(),
         NormalJumpingScreen.routeName: (_) => const NormalJumpingScreen(),
+        ReportingScreen.routeName: (_) => const ReportingScreen(),
+        PerformanceReportScreen.routeName: (_) =>
+            const PerformanceReportScreen(),
       },
     );
   }

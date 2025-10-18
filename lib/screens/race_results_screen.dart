@@ -1,8 +1,8 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'rider_details_screen.dart';
+import '../services/location_service.dart';
+import '../services/mode_service.dart';
+import '../services/unified_race_data_service.dart';
 
 class RaceResultsScreen extends StatefulWidget {
   const RaceResultsScreen({
@@ -41,48 +41,30 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
     });
 
     try {
-      // Get the application documents directory
-      final directory = await getApplicationDocumentsDirectory();
+      // Use the unified race data service
+      final unifiedDataService = UnifiedRaceDataService();
 
-      // Create race_results folder if it doesn't exist
-      final raceResultsDir = Directory('${directory.path}/race_results');
-      if (!await raceResultsDir.exists()) {
-        await raceResultsDir.create(recursive: true);
-      }
-
-      // Create filename with timestamp
-      final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
-      final fileName = 'race_${widget.riderName.replaceAll(' ', '_')}_$timestamp.json';
-      final file = File('${raceResultsDir.path}/$fileName');
-
-      // Prepare race data
-      final raceData = {
-        'timestamp': DateTime.now().toIso8601String(),
-        'rider': {
-          'name': widget.riderName,
-          'horseName': widget.horseName,
-          'horseId': widget.horseId,
-        },
-        'event': widget.eventName,
-        'result': {
-          'elapsedTime': _formatTime(widget.elapsedSeconds),
-          'elapsedSeconds': widget.elapsedSeconds,
-          'maxTime': _formatTime(widget.maxSeconds),
-          'maxSeconds': widget.maxSeconds,
-          'isSuccess': widget.isSuccess,
-          'status': widget.isSuccess ? 'Completed' : 'Time Exceeded',
-        },
-        'additionalDetails': widget.additionalDetails,
-      };
-
-      // Write to file
-      await file.writeAsString(
-        const JsonEncoder.withIndent('  ').convert(raceData),
+      final success = await unifiedDataService.saveRaceData(
+        riderName: widget.riderName,
+        eventName: widget.eventName,
+        horseName: widget.horseName,
+        horseId: widget.horseId,
+        additionalDetails: widget.additionalDetails,
+        elapsedSeconds: widget.elapsedSeconds,
+        maxSeconds: widget.maxSeconds,
+        isSuccess: widget.isSuccess,
       );
 
-      print('✅ Race data saved to: ${file.path}');
+      if (!success) {
+        throw Exception('Failed to save race data to unified storage');
+      }
+
+      print('✅ Race data saved to unified storage');
 
       if (mounted) {
+        // Get file path for display
+        final filePath = await unifiedDataService.getDataFilePath();
+
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -91,7 +73,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text('Race data saved successfully!\n${file.path}'),
+                  child: Text('Race data saved to unified storage!\n$filePath'),
                 ),
               ],
             ),
@@ -111,9 +93,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
               children: [
                 const Icon(Icons.error_outline, color: Colors.white),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Text('Failed to save: $e'),
-                ),
+                Expanded(child: Text('Failed to save: $e')),
               ],
             ),
             backgroundColor: Colors.red,
@@ -254,17 +234,16 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Icon(Icons.emoji_events_outlined,
-                            color: Colors.amber.shade700, size: 24),
+                        Icon(
+                          Icons.emoji_events_outlined,
+                          color: Colors.amber.shade700,
+                          size: 24,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           'Race Details',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -291,6 +270,37 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                       'Event',
                       widget.eventName,
                       Colors.purple.shade600,
+                    ),
+                    const Divider(height: 20),
+                    FutureBuilder<Map<String, dynamic>?>(
+                      future: LocationService().loadLocation(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData && snapshot.data != null) {
+                          final location = snapshot.data!;
+                          final locationDisplay =
+                              '${location['locationName']} - ${location['address']}';
+                          return Column(
+                            children: [
+                              _buildDetailRow(
+                                context,
+                                Icons.location_on,
+                                'Location',
+                                locationDisplay,
+                                Colors.green.shade600,
+                              ),
+                              const Divider(height: 20),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                    _buildDetailRow(
+                      context,
+                      Icons.sports,
+                      'Mode',
+                      ModeService().getModeDisplayName(),
+                      Colors.orange.shade600,
                     ),
                     if (widget.additionalDetails.isNotEmpty) ...[
                       const Divider(height: 20),
@@ -320,7 +330,9 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : const Icon(Icons.save_outlined),
@@ -336,7 +348,8 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                         int selectedTotalSeconds = totalMaxSeconds ~/ 2;
 
                         int nextSelectedHours = selectedTotalSeconds ~/ 3600;
-                        int nextSelectedMinutes = (selectedTotalSeconds % 3600) ~/ 60;
+                        int nextSelectedMinutes =
+                            (selectedTotalSeconds % 3600) ~/ 60;
                         int nextSelectedSeconds = selectedTotalSeconds % 60;
 
                         int nextMaxHours = totalMaxSeconds ~/ 3600;
