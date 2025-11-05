@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'timer_start_screen.dart';
+import '../services/bluetooth_service.dart';
+import '../services/mode_service.dart';
 
 class RiderDetailsScreen extends StatefulWidget {
   const RiderDetailsScreen({
@@ -44,24 +46,65 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
     super.dispose();
   }
 
-  void _handleSave() {
-    if (_formKey.currentState!.validate()) {
-      Navigator.of(context).pushNamed(
-        TimerStartScreen.routeName,
-        arguments: {
-          'selectedHours': widget.selectedHours,
-          'selectedMinutes': widget.selectedMinutes,
-          'selectedSeconds': widget.selectedSeconds,
-          'maxHours': widget.maxHours,
-          'maxMinutes': widget.maxMinutes,
-          'maxSeconds': widget.maxSeconds,
-          'riderName': _riderNameController.text,
-          'eventName': _eventNameController.text,
-          'horseName': _horseNameController.text,
-          'horseId': _horseIdController.text,
-          'additionalDetails': _additionalDetailsController.text,
-        },
+  Future<void> _sendDeviceResetSignal() async {
+    print('🔄 RIDER DETAILS: _sendDeviceResetSignal() method called');
+    final btService = BluetoothService();
+    final modeService = ModeService();
+
+    // Send reset signal based on current mode
+    // SHOW_JUMPING -> d0,e0
+    // MOUNTED_SPORTS -> d0,e1
+    final selectedMode = modeService.getMode();
+    print('🔄 RIDER DETAILS: Current mode is: $selectedMode');
+    String payload;
+
+    if (selectedMode == ModeService.showJumping) {
+      payload = 'd0,e0';
+    } else if (selectedMode == ModeService.mountedSports) {
+      payload = 'd0,e1';
+    } else {
+      payload = 'd0,e0'; // Default fallback
+    }
+
+    print('🔄 RIDER DETAILS: About to send payload: $payload');
+    print('🔄 RIDER DETAILS: Bluetooth connected: ${btService.isConnected}');
+    bool sent = await btService.sendData(payload);
+    if (sent) {
+      print(
+        '✅ RIDER DETAILS: Device reset signal sent successfully: $payload (mode=$selectedMode)',
       );
+    } else {
+      print(
+        '❌ RIDER DETAILS: Failed to send device reset signal (mode=$selectedMode, payload=$payload)',
+      );
+    }
+  }
+
+  void _handleSave() async {
+    if (_formKey.currentState!.validate()) {
+      print('🔄 RIDER DETAILS: About to send device reset signal...');
+      // Send device reset signal for next rider setup
+      await _sendDeviceResetSignal();
+      print('🔄 RIDER DETAILS: Device reset signal completed');
+      
+      if (mounted) {
+        Navigator.of(context).pushNamed(
+          TimerStartScreen.routeName,
+          arguments: {
+            'selectedHours': widget.selectedHours,
+            'selectedMinutes': widget.selectedMinutes,
+            'selectedSeconds': widget.selectedSeconds,
+            'maxHours': widget.maxHours,
+            'maxMinutes': widget.maxMinutes,
+            'maxSeconds': widget.maxSeconds,
+            'riderName': _riderNameController.text,
+            'eventName': _eventNameController.text,
+            'horseName': _horseNameController.text,
+            'horseId': _horseIdController.text,
+            'additionalDetails': _additionalDetailsController.text,
+          },
+        );
+      }
     }
   }
 

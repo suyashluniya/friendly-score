@@ -19,6 +19,7 @@ class RaceResultsScreen extends StatefulWidget {
     required this.horseId,
     required this.additionalDetails,
     required this.isSuccess,
+    this.raceStatus,
   });
 
   static const routeName = '/race-results';
@@ -35,6 +36,7 @@ class RaceResultsScreen extends StatefulWidget {
   final String horseId;
   final String additionalDetails;
   final bool isSuccess;
+  final String? raceStatus;
 
   @override
   State<RaceResultsScreen> createState() => _RaceResultsScreenState();
@@ -43,6 +45,38 @@ class RaceResultsScreen extends StatefulWidget {
 class _RaceResultsScreenState extends State<RaceResultsScreen> {
   bool _isSaving = false;
   bool _isSaved = false;
+
+  bool get _isStoppedRace => widget.raceStatus == 'stopped';
+
+  Color _getResultColor() {
+    if (_isStoppedRace) {
+      return const Color(0xFFEF4444); // Red for stopped
+    } else if (widget.isSuccess) {
+      return const Color(0xFF10B981); // Green for success
+    } else {
+      return const Color(0xFFF59E0B); // Orange for time exceeded
+    }
+  }
+
+  IconData _getResultIcon() {
+    if (_isStoppedRace) {
+      return Icons.stop_circle;
+    } else if (widget.isSuccess) {
+      return Icons.check_circle;
+    } else {
+      return Icons.access_time;
+    }
+  }
+
+  String _getResultTitle() {
+    if (_isStoppedRace) {
+      return 'Race Stopped';
+    } else if (widget.isSuccess) {
+      return 'Race Completed!';
+    } else {
+      return 'Time Exceeded';
+    }
+  }
 
   Future<void> _saveRaceData() async {
     setState(() {
@@ -61,6 +95,11 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
         elapsedSeconds: widget.elapsedSeconds,
         maxSeconds: widget.maxSeconds,
         isSuccess: widget.isSuccess,
+        elapsedHours: widget.elapsedHours,
+        elapsedMinutes: widget.elapsedMinutes,
+        elapsedSecondsOnly: widget.elapsedSecondsOnly,
+        elapsedMilliseconds: widget.elapsedMilliseconds,
+        raceStatus: widget.raceStatus,
       );
 
       if (mounted) {
@@ -158,22 +197,18 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
             children: [
               const SizedBox(height: 16),
 
-              // Success/Failure Icon
+              // Success/Failure/Stopped Icon
               Container(
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: widget.isSuccess
-                      ? const Color(0xFF10B981).withOpacity(0.1)
-                      : const Color(0xFFF59E0B).withOpacity(0.1),
+                  color: _getResultColor().withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
                 child: Icon(
-                  widget.isSuccess ? Icons.check_circle : Icons.access_time,
-                  color: widget.isSuccess
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFFF59E0B),
+                  _getResultIcon(),
+                  color: _getResultColor(),
                   size: 48,
                 ),
               ),
@@ -182,12 +217,10 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
 
               // Result Title
               Text(
-                widget.isSuccess ? 'Race Completed!' : 'Time Exceeded',
+                _getResultTitle(),
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: widget.isSuccess
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFFF59E0B),
+                  color: _getResultColor(),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -199,9 +232,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: widget.isSuccess
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFFF59E0B),
+                  color: _getResultColor(),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
@@ -216,20 +247,27 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      _formatTimeWithMilliseconds(),
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 42, // Slightly smaller to fit milliseconds
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                    Column(
+                      children: [
+                        Text(
+                          _formatTimeWithMilliseconds(),
+                          style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 42, // Slightly smaller to fit milliseconds
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Time labels
+                        _buildTimeLabels(),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -305,7 +343,8 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                       builder: (context, snapshot) {
                         if (snapshot.hasData && snapshot.data != null) {
                           final location = snapshot.data!;
-                          final locationDisplay = '${location['locationName']} - ${location['address']}';
+                          final locationDisplay =
+                              '${location['locationName']} - ${location['address']}';
                           return Column(
                             children: [
                               _buildDetailRow(
@@ -391,7 +430,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         // Calculate original selected time from maxSeconds (maxSeconds = selectedSeconds * 2)
                         int totalMaxSeconds = widget.maxSeconds;
                         int selectedTotalSeconds = totalMaxSeconds ~/ 2;
@@ -524,5 +563,65 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
         return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}:00';
       }
     }
+  }
+
+  Widget _buildTimeLabels() {
+    // Determine which time format is being used
+    bool hasHours = widget.elapsedHours > 0;
+    bool hasDetailedTime = widget.elapsedHours > 0 || widget.elapsedMinutes > 0 || 
+                          widget.elapsedSecondsOnly > 0 || widget.elapsedMilliseconds > 0;
+    
+    if (!hasDetailedTime) {
+      // Fallback format calculation
+      hasHours = (widget.elapsedSeconds ~/ 3600) > 0;
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (hasHours) ...[
+          _buildTimeLabel('HH'),
+          _buildTimeSeparator(),
+        ],
+        _buildTimeLabel('MM'),
+        _buildTimeSeparator(),
+        _buildTimeLabel('SS'),
+        _buildTimeSeparator(),
+        _buildTimeLabel('MS'),
+      ],
+    );
+  }
+
+  Widget _buildTimeLabel(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeSeparator() {
+    return const SizedBox(
+      width: 16,
+      child: Text(
+        ':',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Colors.transparent, // Hidden separator for spacing
+          fontSize: 12,
+        ),
+      ),
+    );
   }
 }

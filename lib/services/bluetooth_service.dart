@@ -148,18 +148,21 @@ class BluetoothService {
 
   // Send data to ESP32
   Future<bool> sendData(String data) async {
+    print('📡 BLUETOOTH SERVICE: sendData() called with data: $data');
     try {
+      print('📡 BLUETOOTH SERVICE: Connection status - _connection: ${_connection != null}, isConnected: ${_connection?.isConnected}');
       if (_connection != null && _connection!.isConnected) {
+        print('📡 BLUETOOTH SERVICE: About to send data to ESP32...');
         _connection!.output.add(Uint8List.fromList(utf8.encode(data + '\n')));
         await _connection!.output.allSent;
-        print('📤 Sent to ESP32: $data');
+        print('📤 BLUETOOTH SERVICE: Successfully sent to ESP32: $data');
         return true;
       } else {
-        print('❌ Not connected to device');
+        print('❌ BLUETOOTH SERVICE: Not connected to device');
         return false;
       }
     } catch (e) {
-      print('❌ Error sending data: $e');
+      print('❌ BLUETOOTH SERVICE: Error sending data: $e');
       return false;
     }
   }

@@ -77,6 +77,102 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
     }
   }
 
+  Future<void> _showDisarmConfirmation() async {
+    final bool? shouldDisarm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Disarm Device'),
+          content: const Text(
+            'Do you really want to disarm the device? This will stop the system and return to home.',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Disarm'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDisarm == true) {
+      await _disarmDevice();
+    }
+  }
+
+  Future<void> _disarmDevice() async {
+    final btService = BluetoothService();
+
+    // Send disarm command to device
+    bool sent = await btService.sendData('d1,e0');
+    if (sent) {
+      print('✅ Disarm signal sent successfully to ESP32: d1,e0');
+
+      // Show confirmation that device was disarmed
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(child: Text('Device has been manually disarmed')),
+              ],
+            ),
+            backgroundColor: Colors.green.shade600,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+
+        // Navigate to homepage (mode selection) after a short delay
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        }
+      }
+    } else {
+      print('❌ Failed to send disarm signal');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text('Failed to disarm device. Please try again.'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _bluetoothSubscription?.cancel();
@@ -283,6 +379,37 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                   .animate()
                   .fadeIn(duration: 600.ms, delay: 800.ms)
                   .scale(curve: Curves.elasticOut),
+
+              const SizedBox(height: 32),
+
+              // Manual Disarm Button
+              GestureDetector(
+                onTap: _showDisarmConfirmation,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.power_settings_new, color: Colors.white, size: 24),
+                      const SizedBox(width: 12),
+                      Text(
+                        'DISARM DEVICE',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Colors.white,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ).animate().fadeIn(duration: 600.ms, delay: 1000.ms),
 
               const SizedBox(height: 24),
             ],

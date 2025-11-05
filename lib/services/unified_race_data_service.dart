@@ -141,6 +141,11 @@ class UnifiedRaceDataService {
     required int elapsedSeconds,
     required int maxSeconds,
     required bool isSuccess,
+    int elapsedHours = 0,
+    int elapsedMinutes = 0,
+    int elapsedSecondsOnly = 0,
+    int elapsedMilliseconds = 0,
+    String? raceStatus,
   }) async {
     try {
       // Validate input data
@@ -204,12 +209,26 @@ class UnifiedRaceDataService {
           'horseId': horseId,
         },
         'performance': {
-          'elapsedTime': _formatTime(elapsedSeconds),
+          'elapsedTime': _formatTime(
+            elapsedSeconds,
+            hours: elapsedHours,
+            minutes: elapsedMinutes,
+            seconds: elapsedSecondsOnly,
+            milliseconds: elapsedMilliseconds,
+          ),
           'elapsedSeconds': elapsedSeconds,
+          'elapsedMilliseconds': elapsedMilliseconds,
+          'elapsedComponents': {
+            'hours': elapsedHours,
+            'minutes': elapsedMinutes,
+            'seconds': elapsedSecondsOnly,
+            'milliseconds': elapsedMilliseconds,
+          },
           'targetTime': _formatTime(maxSeconds),
           'targetSeconds': maxSeconds,
+          'targetMilliseconds': 0,
           'isSuccess': isSuccess,
-          'status': isSuccess ? 'Completed' : 'Time Exceeded',
+          'status': _getStatusString(isSuccess, raceStatus),
           'improvementPercentage': improvementPercentage,
         },
         'hardware': {
@@ -273,19 +292,39 @@ class UnifiedRaceDataService {
     return 'race_$timestamp$random';
   }
 
-  /// Format time in a readable format
-  String _formatTime(int totalSeconds) {
-    final hours = totalSeconds ~/ 3600;
-    final minutes = (totalSeconds % 3600) ~/ 60;
-    final seconds = totalSeconds % 60;
-
-    if (hours > 0) {
-      return '${hours}h ${minutes}m ${seconds}s';
-    } else if (minutes > 0) {
-      return '${minutes}m ${seconds}s';
+  /// Get status string based on success and race status
+  String _getStatusString(bool isSuccess, String? raceStatus) {
+    if (raceStatus == 'stopped') {
+      return 'Stopped';
+    } else if (isSuccess) {
+      return 'Completed';
     } else {
-      return '${seconds}s';
+      return 'Time Exceeded';
     }
+  }
+
+  /// Format time as HH:MM:SS:CC (centiseconds)
+  String _formatTime(
+    int totalSeconds, {
+    int? hours,
+    int? minutes,
+    int? seconds,
+    int milliseconds = 0,
+  }) {
+  final int limitedMillis = milliseconds.clamp(0, 999).toInt();
+  final int totalMilliseconds = (totalSeconds * 1000) + limitedMillis;
+    final duration = Duration(milliseconds: totalMilliseconds);
+
+    final resolvedHours = hours ?? duration.inHours;
+    final resolvedMinutes = minutes ?? duration.inMinutes.remainder(60);
+    final resolvedSeconds = seconds ?? duration.inSeconds.remainder(60);
+  final int rawCentiseconds = duration.inMilliseconds.remainder(1000) ~/ 10;
+  final int centiseconds = rawCentiseconds.clamp(0, 99).toInt();
+
+    return '${resolvedHours.toString().padLeft(2, '0')}:'
+        '${resolvedMinutes.toString().padLeft(2, '0')}:'
+        '${resolvedSeconds.toString().padLeft(2, '0')}:'
+        '${centiseconds.toString().padLeft(2, '0')}';
   }
 
   /// Calculate improvement percentage for a rider
@@ -463,8 +502,7 @@ class UnifiedRaceDataService {
       // Validate all data entries before processing
       final validData = data.where((record) {
         try {
-          return record is Map &&
-                 record['performance'] is Map &&
+          return record['performance'] is Map &&
                  record['rider'] is Map &&
                  record['event'] is Map;
         } catch (e) {

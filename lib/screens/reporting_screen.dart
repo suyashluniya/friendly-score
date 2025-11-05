@@ -771,10 +771,12 @@ class _ReportingScreenState extends State<ReportingScreen> {
     return ListView.builder(
       itemCount: recentSessions.length,
       itemBuilder: (context, index) {
-        final session = recentSessions[index] as Map<String, dynamic>;
-        final riderName = session['rider']?['name'] ?? 'Unknown';
-        final horseName = session['rider']?['horseName'] ?? 'Unknown';
-        final elapsedTime = session['performance']?['elapsedTime'] ?? '0s';
+    final session = recentSessions[index] as Map<String, dynamic>;
+    final riderName = session['rider']?['name'] ?? 'Unknown';
+    final horseName = session['rider']?['horseName'] ?? 'Unknown';
+    final performance =
+      session['performance'] as Map<String, dynamic>? ?? const {};
+    final formattedTime = _formatPerformanceTime(performance);
         final isSuccess = session['performance']?['isSuccess'] ?? false;
         final mode = session['event']?['mode'] ?? 'Unknown';
         final timestamp =
@@ -795,7 +797,7 @@ class _ReportingScreenState extends State<ReportingScreen> {
             title: Text('$riderName & $horseName'),
             subtitle: Text('$mode • ${_formatDate(timestamp)}'),
             trailing: Text(
-              elapsedTime,
+              formattedTime,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: isSuccess ? Colors.green.shade600 : Colors.red.shade600,
@@ -887,6 +889,81 @@ class _ReportingScreenState extends State<ReportingScreen> {
         );
       }).toList(),
     );
+  }
+
+  String _formatPerformanceTime(Map<String, dynamic> performance) {
+    final components =
+        performance['elapsedComponents'] as Map<String, dynamic>?;
+
+    final int milliseconds =
+        (_tryParseInt(performance['elapsedMilliseconds']) ?? 0)
+            .clamp(0, 999)
+            .toInt();
+
+    final int? hours = _tryParseInt(components?['hours']);
+    final int? minutes = _tryParseInt(components?['minutes']);
+    final int? seconds = _tryParseInt(components?['seconds']);
+
+    double? totalSecondsDouble;
+    final elapsedSecondsValue = performance['elapsedSeconds'];
+    if (elapsedSecondsValue is num) {
+      totalSecondsDouble = elapsedSecondsValue.toDouble();
+    } else if (elapsedSecondsValue is String &&
+        elapsedSecondsValue.trim().isNotEmpty) {
+      totalSecondsDouble = double.tryParse(elapsedSecondsValue.trim());
+    }
+
+    Duration duration;
+    if (hours != null || minutes != null || seconds != null) {
+      duration = Duration(
+        hours: hours ?? 0,
+        minutes: minutes ?? 0,
+        seconds: seconds ?? 0,
+        milliseconds: milliseconds,
+      );
+    } else if (totalSecondsDouble != null) {
+      final totalMillis = (totalSecondsDouble * 1000).round();
+      final adjustedMillis =
+          totalMillis - (totalMillis % 1000) + milliseconds;
+      duration = Duration(milliseconds: adjustedMillis);
+    } else {
+      final int totalSecondsInt =
+          _tryParseInt(performance['elapsedSeconds']) ?? 0;
+      duration = Duration(
+        seconds: totalSecondsInt,
+        milliseconds: milliseconds,
+      );
+    }
+
+    if (duration.inMilliseconds == 0) {
+      final fallback = performance['elapsedTime']?.toString();
+      if (fallback != null && fallback.isNotEmpty) {
+        return fallback;
+      }
+    }
+
+    return _formatDuration(duration);
+  }
+
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    final centiseconds = (duration.inMilliseconds.remainder(1000) ~/ 10);
+
+    return '${hours.toString().padLeft(2, '0')}:'
+        '${minutes.toString().padLeft(2, '0')}:'
+        '${seconds.toString().padLeft(2, '0')}:'
+        '${centiseconds.toString().padLeft(2, '0')}';
+  }
+
+  int? _tryParseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is double) return value.round();
+    if (value is String && value.trim().isNotEmpty) {
+      return int.tryParse(value.trim());
+    }
+    return null;
   }
 
   String _formatDate(DateTime date) {

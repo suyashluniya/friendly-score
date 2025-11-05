@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'top_score_screen.dart';
 import 'normal_jumping_screen.dart';
+import '../services/mode_service.dart';
 
 class JumpingScreen extends StatelessWidget {
   const JumpingScreen({super.key});
@@ -9,10 +10,19 @@ class JumpingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get the current mode to display the correct title
+    final modeService = ModeService();
+    final currentMode = modeService.getMode();
+
+    String appBarTitle;
+    if (currentMode == ModeService.mountedSports) {
+      appBarTitle = 'Mounted Sports';
+    } else {
+      appBarTitle = 'Show Jumping'; // Default fallback
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Show Jumping'),
-      ),
+      appBar: AppBar(title: Text(appBarTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -107,16 +117,11 @@ class _JumpOptionButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        constraints: const BoxConstraints(
-          minHeight: 100,
-        ),
+        constraints: const BoxConstraints(minHeight: 100),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           color: Colors.white,
-          border: Border.all(
-            color: const Color(0xFFE5E7EB),
-            width: 1.5,
-          ),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -160,11 +165,7 @@ class _JumpOptionButton extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               // Arrow icon
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 20,
-                color: color,
-              ),
+              Icon(Icons.arrow_forward_ios, size: 20, color: color),
             ],
           ),
         ),

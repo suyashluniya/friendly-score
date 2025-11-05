@@ -447,6 +447,7 @@ class MyApp extends StatelessWidget {
               horseId: args['horseId'] as String,
               additionalDetails: args['additionalDetails'] as String,
               isSuccess: args['isSuccess'] as bool,
+              raceStatus: args['raceStatus'] as String?,
             ),
           );
         }

@@ -338,12 +338,131 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
   }
 
   String _formatTime(double timeInSeconds) {
-    if (timeInSeconds == 0) return '0:00.0';
+    if (timeInSeconds <= 0) {
+      return '00:00:00:00';
+    }
 
-    int minutes = (timeInSeconds / 60).floor();
-    double seconds = timeInSeconds % 60;
+    final duration =
+        Duration(milliseconds: (timeInSeconds * 1000).round());
+    return _formatDuration(duration);
+  }
 
-    return '${minutes}:${seconds.toStringAsFixed(1).padLeft(4, '0')}';
+  String _formatPerformance(Map<String, dynamic>? performance) {
+    final duration = _resolvePerformanceDuration(performance);
+    if (duration != null) {
+      return _formatDuration(duration);
+    }
+
+    final fallback = performance?['elapsedTime']?.toString();
+    if (fallback != null && fallback.isNotEmpty) {
+      return fallback;
+    }
+
+    return '00:00:00:00';
+  }
+
+  Duration? _resolvePerformanceDuration(Map<String, dynamic>? performance) {
+    if (performance == null) {
+      return null;
+    }
+
+    final components =
+        performance['elapsedComponents'] as Map<String, dynamic>?;
+
+    final int? hours = _tryParseInt(components?['hours']);
+    final int? minutes = _tryParseInt(components?['minutes']);
+    final int? seconds = _tryParseInt(components?['seconds']);
+    final int? componentMillis = _tryParseInt(components?['milliseconds']);
+    final int millisFallback =
+        _tryParseInt(performance['elapsedMilliseconds']) ?? 0;
+
+    if (hours != null ||
+        minutes != null ||
+        seconds != null ||
+        componentMillis != null ||
+        millisFallback != 0) {
+      final int milliseconds =
+          (componentMillis ?? millisFallback).clamp(0, 999).toInt();
+      return Duration(
+        hours: hours ?? 0,
+        minutes: minutes ?? 0,
+        seconds: seconds ?? 0,
+        milliseconds: milliseconds,
+      );
+    }
+
+    final elapsedSeconds = performance['elapsedSeconds'];
+    if (elapsedSeconds is num) {
+      return Duration(
+        milliseconds: (elapsedSeconds.toDouble() * 1000).round(),
+      );
+    }
+    if (elapsedSeconds is String && elapsedSeconds.trim().isNotEmpty) {
+      final parsed = double.tryParse(elapsedSeconds.trim());
+      if (parsed != null) {
+        return Duration(milliseconds: (parsed * 1000).round());
+      }
+    }
+
+    final elapsedTime = performance['elapsedTime']?.toString();
+    if (elapsedTime != null && elapsedTime.isNotEmpty) {
+      return _parseFormattedElapsed(elapsedTime);
+    }
+
+    return null;
+  }
+
+  Duration? _parseFormattedElapsed(String value) {
+    final parts = value.split(':');
+    if (parts.length != 4) {
+      return null;
+    }
+
+    final int? hours = int.tryParse(parts[0]);
+    final int? minutes = int.tryParse(parts[1]);
+    final int? seconds = int.tryParse(parts[2]);
+    final int? centiseconds = int.tryParse(parts[3]);
+
+    if (hours == null ||
+        minutes == null ||
+        seconds == null ||
+        centiseconds == null) {
+      return null;
+    }
+
+    final boundedCentiseconds = centiseconds < 0
+        ? 0
+        : centiseconds > 99
+            ? 99
+            : centiseconds;
+
+    return Duration(
+      hours: hours,
+      minutes: minutes,
+      seconds: seconds,
+      milliseconds: boundedCentiseconds * 10,
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    final centiseconds = (duration.inMilliseconds.remainder(1000) ~/ 10);
+
+    return '${hours.toString().padLeft(2, '0')}:'
+        '${minutes.toString().padLeft(2, '0')}:'
+        '${seconds.toString().padLeft(2, '0')}:'
+        '${centiseconds.toString().padLeft(2, '0')}';
+  }
+
+  int? _tryParseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is double) return value.round();
+    if (value is String && value.trim().isNotEmpty) {
+      return int.tryParse(value.trim());
+    }
+    return null;
   }
 
   String _formatDate(String dateString) {
@@ -387,44 +506,43 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
       for (var entry in _raceData) {
         try {
           // Validate entry structure
-          if (entry == null || entry is! Map) continue;
-
           final rider = entry['rider'];
           final performance = entry['performance'];
           final event = entry['event'];
 
-          if (rider is! Map || performance is! Map || event is! Map) continue;
+          if (rider is! Map<String, dynamic> ||
+              performance is! Map<String, dynamic> ||
+              event is! Map<String, dynamic>) {
+            continue;
+          }
 
           String riderName = rider['name']?.toString() ?? 'Unknown';
           if (riderName == 'Unknown') continue;
 
-          // Get elapsed time safely
-          double time = 0.0;
-          final elapsedSeconds = performance['elapsedSeconds'];
-          if (elapsedSeconds is int) {
-            time = elapsedSeconds.toDouble();
-          } else if (elapsedSeconds is double) {
-            time = elapsedSeconds;
+          final duration = _resolvePerformanceDuration(performance);
+          if (duration == null || duration.inMilliseconds <= 0) {
+            continue;
           }
 
           String mode = event['mode']?.toString() ?? 'Unknown';
 
-          if (time > 0) {
-            if (!riderData.containsKey(riderName)) {
-              riderData[riderName] = {
-                'bestTime': time,
-                'sessionCount': 1,
-                'mode': mode,
-                'horseName': rider['horseName']?.toString() ?? 'Unknown Horse',
-              };
-            } else {
-              if (time < riderData[riderName]!['bestTime']) {
-                riderData[riderName]!['bestTime'] = time;
-                riderData[riderName]!['mode'] = mode;
-                riderData[riderName]!['horseName'] = rider['horseName']?.toString() ?? 'Unknown Horse';
-              }
-              riderData[riderName]!['sessionCount']++;
+          if (!riderData.containsKey(riderName)) {
+            riderData[riderName] = {
+              'bestDuration': duration,
+              'sessionCount': 1,
+              'mode': mode,
+              'horseName': rider['horseName']?.toString() ?? 'Unknown Horse',
+            };
+          } else {
+            final existingDuration =
+                riderData[riderName]!['bestDuration'] as Duration;
+            if (duration.inMilliseconds < existingDuration.inMilliseconds) {
+              riderData[riderName]!['bestDuration'] = duration;
+              riderData[riderName]!['mode'] = mode;
+              riderData[riderName]!['horseName'] =
+                  rider['horseName']?.toString() ?? 'Unknown Horse';
             }
+            riderData[riderName]!['sessionCount']++;
           }
         } catch (e) {
           print('Error processing entry in _buildTopPerformers: $e');
@@ -449,14 +567,18 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
 
     // Sort by best time and take top performers
     var sortedPerformers = riderData.entries.toList()
-      ..sort((a, b) => a.value['bestTime'].compareTo(b.value['bestTime']));
+      ..sort((a, b) {
+        final Duration aDuration = a.value['bestDuration'] as Duration;
+        final Duration bDuration = b.value['bestDuration'] as Duration;
+        return aDuration.compareTo(bDuration);
+      });
 
     List<Widget> performerCards = [];
 
     for (int i = 0; i < sortedPerformers.length && i < 3; i++) {
       var performer = sortedPerformers[i];
       String riderName = performer.key;
-      double bestTime = performer.value['bestTime'];
+  final Duration bestDuration = performer.value['bestDuration'] as Duration;
       int sessionCount = performer.value['sessionCount'];
       String mode = performer.value['mode'];
       String horseName = performer.value['horseName'] ?? 'Unknown Horse';
@@ -466,7 +588,7 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
           rank: i + 1,
           name: riderName,
           horse: horseName,
-          bestTime: _formatTime(bestTime),
+          bestTime: _formatDuration(bestDuration),
           mode: mode,
           improvement: '$sessionCount sessions',
           avatar: String.fromCharCode(0x1F3C7 + i), // Different emojis
@@ -509,8 +631,7 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
       // Filter valid sessions only
       var validSessions = _raceData.where((session) {
         try {
-          return session is Map &&
-                 session['rider'] is Map &&
+          return session['rider'] is Map &&
                  session['event'] is Map &&
                  session['performance'] is Map &&
                  session['timestamp'] != null;
@@ -847,22 +968,16 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
 
   Widget _buildSessionCard(Map<String, dynamic> session, int delay) {
     try {
-      // Safely extract values with type checking
-      double time = 0.0;
-      final elapsedSeconds = session['performance']?['elapsedSeconds'];
-      if (elapsedSeconds is int) {
-        time = elapsedSeconds.toDouble();
-      } else if (elapsedSeconds is double) {
-        time = elapsedSeconds;
-      } else if (elapsedSeconds != null) {
-        time = double.tryParse(elapsedSeconds.toString()) ?? 0.0;
-      }
+      final performanceRaw = session['performance'];
+      final performance =
+          performanceRaw is Map<String, dynamic> ? performanceRaw : null;
+      final formattedTime = _formatPerformance(performance);
 
       final String riderName = session['rider']?['name']?.toString() ?? 'Unknown';
       final String mode = session['event']?['mode']?.toString() ?? 'Unknown';
       final String location = session['event']?['location']?['name']?.toString() ?? '';
       final String date = session['timestamp']?.toString() ?? '';
-      final bool isSuccess = session['performance']?['isSuccess'] == true;
+      final bool isSuccess = performance?['isSuccess'] == true;
 
     return Container(
           padding: const EdgeInsets.all(16),
@@ -916,7 +1031,7 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
                               ?.copyWith(color: const Color(0xFF64748B)),
                         ),
                         Text(
-                          _formatTime(time),
+                          formattedTime,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
@@ -1022,6 +1137,7 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
     );
   }
 
+  // ignore: unused_element
   Future<void> _exportReport() async {
     setState(() {
       _isLoading = true;
@@ -1071,20 +1187,12 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
 
         for (var session in _raceData.take(10)) {
           try {
-            if (session is! Map) continue;
-
             final rider = session['rider']?['name']?.toString() ?? 'Unknown';
             final mode = session['event']?['mode']?.toString() ?? 'Unknown';
-
-            double timeValue = 0.0;
-            final elapsedSeconds = session['performance']?['elapsedSeconds'];
-            if (elapsedSeconds is int) {
-              timeValue = elapsedSeconds.toDouble();
-            } else if (elapsedSeconds is double) {
-              timeValue = elapsedSeconds;
-            }
-
-            final time = _formatTime(timeValue);
+            final performanceRaw = session['performance'];
+            final performance =
+                performanceRaw is Map<String, dynamic> ? performanceRaw : null;
+            final time = _formatPerformance(performance);
             final date = _formatDate(session['timestamp']?.toString() ?? '');
 
             reportBuffer.writeln('$rider\t\t\t$mode\t\t\t$time\t\t\t$date');
@@ -1194,6 +1302,7 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
     }
   }
 
+  // ignore: unused_element
   void _shareReport() {
     ScaffoldMessenger.of(
       context,
