@@ -189,6 +189,41 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
                 ),
               ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2),
 
+              const SizedBox(height: 16),
+
+              // Timing Format Note
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.blue.shade600,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'All timing displays are in HH:MM:SS:MS format (Hours:Minutes:Seconds:Milliseconds)',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 600.ms, delay: 200.ms),
+
               const SizedBox(height: 24),
 
               // Best Performers Section
@@ -215,7 +250,8 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
                     child: _buildMetricCard(
                       'Average Time',
                       _formatTime(
-                        (_analyticsData?['summary']?['averageTime'] ?? 0).toDouble(),
+                        (_analyticsData?['summary']?['averageTime'] ?? 0)
+                            .toDouble(),
                       ),
                       'Based on ${_raceData.length} sessions',
                       FontAwesomeIcons.clock,
@@ -244,7 +280,10 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
                   Expanded(
                     child: _buildMetricCard(
                       'Best Time',
-                      _formatTime((_analyticsData?['summary']?['bestTime'] ?? 0).toDouble()),
+                      _formatTime(
+                        (_analyticsData?['summary']?['bestTime'] ?? 0)
+                            .toDouble(),
+                      ),
                       'Personal best record',
                       FontAwesomeIcons.trophy,
                       Colors.amber.shade600,
@@ -328,7 +367,6 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
               //     .animate()
               //     .fadeIn(duration: 600.ms, delay: 2000.ms)
               //     .slideY(begin: 0.3),
-
               const SizedBox(height: 40),
             ],
           ),
@@ -342,8 +380,7 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
       return '00:00:00:00';
     }
 
-    final duration =
-        Duration(milliseconds: (timeInSeconds * 1000).round());
+    final duration = Duration(milliseconds: (timeInSeconds * 1000).round());
     return _formatDuration(duration);
   }
 
@@ -381,8 +418,9 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
         seconds != null ||
         componentMillis != null ||
         millisFallback != 0) {
-      final int milliseconds =
-          (componentMillis ?? millisFallback).clamp(0, 999).toInt();
+      final int milliseconds = (componentMillis ?? millisFallback)
+          .clamp(0, 999)
+          .toInt();
       return Duration(
         hours: hours ?? 0,
         minutes: minutes ?? 0,
@@ -393,9 +431,7 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
 
     final elapsedSeconds = performance['elapsedSeconds'];
     if (elapsedSeconds is num) {
-      return Duration(
-        milliseconds: (elapsedSeconds.toDouble() * 1000).round(),
-      );
+      return Duration(milliseconds: (elapsedSeconds.toDouble() * 1000).round());
     }
     if (elapsedSeconds is String && elapsedSeconds.trim().isNotEmpty) {
       final parsed = double.tryParse(elapsedSeconds.trim());
@@ -433,8 +469,8 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
     final boundedCentiseconds = centiseconds < 0
         ? 0
         : centiseconds > 99
-            ? 99
-            : centiseconds;
+        ? 99
+        : centiseconds;
 
     return Duration(
       hours: hours,
@@ -578,7 +614,7 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
     for (int i = 0; i < sortedPerformers.length && i < 3; i++) {
       var performer = sortedPerformers[i];
       String riderName = performer.key;
-  final Duration bestDuration = performer.value['bestDuration'] as Duration;
+      final Duration bestDuration = performer.value['bestDuration'] as Duration;
       int sessionCount = performer.value['sessionCount'];
       String mode = performer.value['mode'];
       String horseName = performer.value['horseName'] ?? 'Unknown Horse';
@@ -632,9 +668,9 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
       var validSessions = _raceData.where((session) {
         try {
           return session['rider'] is Map &&
-                 session['event'] is Map &&
-                 session['performance'] is Map &&
-                 session['timestamp'] != null;
+              session['event'] is Map &&
+              session['performance'] is Map &&
+              session['timestamp'] != null;
         } catch (e) {
           return false;
         }
@@ -661,8 +697,12 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
       var sortedSessions = List<Map<String, dynamic>>.from(validSessions);
       sortedSessions.sort((a, b) {
         try {
-          DateTime dateA = DateTime.tryParse(a['timestamp']?.toString() ?? '') ?? DateTime.now();
-          DateTime dateB = DateTime.tryParse(b['timestamp']?.toString() ?? '') ?? DateTime.now();
+          DateTime dateA =
+              DateTime.tryParse(a['timestamp']?.toString() ?? '') ??
+              DateTime.now();
+          DateTime dateB =
+              DateTime.tryParse(b['timestamp']?.toString() ?? '') ??
+              DateTime.now();
           return dateB.compareTo(dateA);
         } catch (e) {
           return 0;
@@ -685,20 +725,22 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
         }
       }
 
-      return sessionWidgets.isNotEmpty ? sessionWidgets : [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Text(
-            'Error displaying sessions',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ];
+      return sessionWidgets.isNotEmpty
+          ? sessionWidgets
+          : [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Error displaying sessions',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ];
     } catch (e) {
       print('Error in _buildRecentSessionsList: $e');
       return [
@@ -969,91 +1011,94 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
   Widget _buildSessionCard(Map<String, dynamic> session, int delay) {
     try {
       final performanceRaw = session['performance'];
-      final performance =
-          performanceRaw is Map<String, dynamic> ? performanceRaw : null;
+      final performance = performanceRaw is Map<String, dynamic>
+          ? performanceRaw
+          : null;
       final formattedTime = _formatPerformance(performance);
 
-      final String riderName = session['rider']?['name']?.toString() ?? 'Unknown';
+      final String riderName =
+          session['rider']?['name']?.toString() ?? 'Unknown';
       final String mode = session['event']?['mode']?.toString() ?? 'Unknown';
-      final String location = session['event']?['location']?['name']?.toString() ?? '';
+      final String location =
+          session['event']?['location']?['name']?.toString() ?? '';
       final String date = session['timestamp']?.toString() ?? '';
       final bool isSuccess = performance?['isSuccess'] == true;
 
-    return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 8,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: isSuccess
-                      ? Colors.green.shade600
-                      : Colors.red.shade600,
-                  borderRadius: BorderRadius.circular(4),
+      return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isSuccess
+                        ? Colors.green.shade600
+                        : Colors.red.shade600,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          riderName,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1E293B),
-                              ),
-                        ),
-                        Text(
-                          _formatDate(date),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: const Color(0xFF64748B)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          mode + (location.isNotEmpty ? ' • $location' : ''),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: const Color(0xFF64748B)),
-                        ),
-                        Text(
-                          formattedTime,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: isSuccess
-                                    ? Colors.green.shade700
-                                    : Colors.red.shade700,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            riderName,
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                          ),
+                          Text(
+                            _formatDate(date),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: const Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            mode + (location.isNotEmpty ? ' • $location' : ''),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: const Color(0xFF64748B)),
+                          ),
+                          Text(
+                            formattedTime,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: isSuccess
+                                      ? Colors.green.shade700
+                                      : Colors.red.shade700,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        )
-        .animate()
-        .fadeIn(
-          duration: 400.ms,
-          delay: Duration(milliseconds: delay),
-        )
-        .slideX(begin: 0.2);
+              ],
+            ),
+          )
+          .animate()
+          .fadeIn(
+            duration: 400.ms,
+            delay: Duration(milliseconds: delay),
+          )
+          .slideX(begin: 0.2);
     } catch (e) {
       print('Error building session card: $e');
       return Container(
@@ -1086,12 +1131,10 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
               DropdownButtonFormField<String>(
                 value: tempTimeframe,
                 decoration: const InputDecoration(labelText: 'Timeframe'),
-                items: [
-                  'Last 7 Days',
-                  'Last 30 Days',
-                  'Last 3 Months',
-                  'All Time',
-                ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                items:
+                    ['Last 7 Days', 'Last 30 Days', 'Last 3 Months', 'All Time']
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
                 onChanged: (value) {
                   setDialogState(() {
                     tempTimeframe = value!;
@@ -1102,11 +1145,9 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
               DropdownButtonFormField<String>(
                 value: tempMode,
                 decoration: const InputDecoration(labelText: 'Mode'),
-                items: [
-                  'All Modes',
-                  'Show Jumping',
-                  'Mounted Sports',
-                ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                items: ['All Modes', 'Show Jumping', 'Mounted Sports']
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
                 onChanged: (value) {
                   setDialogState(() {
                     tempMode = value!;
@@ -1190,8 +1231,9 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
             final rider = session['rider']?['name']?.toString() ?? 'Unknown';
             final mode = session['event']?['mode']?.toString() ?? 'Unknown';
             final performanceRaw = session['performance'];
-            final performance =
-                performanceRaw is Map<String, dynamic> ? performanceRaw : null;
+            final performance = performanceRaw is Map<String, dynamic>
+                ? performanceRaw
+                : null;
             final time = _formatPerformance(performance);
             final date = _formatDate(session['timestamp']?.toString() ?? '');
 
@@ -1234,15 +1276,24 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Your performance report has been copied to your clipboard.'),
+                  Text(
+                    'Your performance report has been copied to your clipboard.',
+                  ),
                   SizedBox(height: 16),
-                  Text('How to access your exported report:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    'How to access your exported report:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 8),
-                  Text('• Open any text editor (Notepad, Word, Google Docs, etc.)'),
+                  Text(
+                    '• Open any text editor (Notepad, Word, Google Docs, etc.)',
+                  ),
                   Text('• Press Ctrl+V (Windows) or Cmd+V (Mac) to paste'),
                   Text('• Save the document to your desired location'),
                   SizedBox(height: 16),
-                  Text('The report includes all performance metrics, analytics, and recent session data in a formatted text layout.'),
+                  Text(
+                    'The report includes all performance metrics, analytics, and recent session data in a formatted text layout.',
+                  ),
                 ],
               ),
               actions: [
@@ -1262,7 +1313,11 @@ class _PerformanceReportScreenState extends State<PerformanceReportScreen> {
               children: [
                 Icon(Icons.info_outline, color: Colors.white),
                 SizedBox(width: 12),
-                Expanded(child: Text('Report copied to clipboard - check the dialog for details')),
+                Expanded(
+                  child: Text(
+                    'Report copied to clipboard - check the dialog for details',
+                  ),
+                ),
               ],
             ),
             backgroundColor: Colors.blue.shade600,

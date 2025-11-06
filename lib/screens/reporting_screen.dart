@@ -168,7 +168,10 @@ class _ReportingScreenState extends State<ReportingScreen> {
               // Timing Format Note
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(12),
@@ -375,7 +378,6 @@ class _ReportingScreenState extends State<ReportingScreen> {
               //   ],
               //   1400,
               // ),
-
               const SizedBox(height: 24),
 
               // Location & Environmental Reports
@@ -443,7 +445,6 @@ class _ReportingScreenState extends State<ReportingScreen> {
               //   ],
               //   1800,
               // ),
-
               const SizedBox(height: 40),
             ],
           ),
@@ -801,12 +802,12 @@ class _ReportingScreenState extends State<ReportingScreen> {
     return ListView.builder(
       itemCount: recentSessions.length,
       itemBuilder: (context, index) {
-    final session = recentSessions[index] as Map<String, dynamic>;
-    final riderName = session['rider']?['name'] ?? 'Unknown';
-    final horseName = session['rider']?['horseName'] ?? 'Unknown';
-    final performance =
-      session['performance'] as Map<String, dynamic>? ?? const {};
-    final formattedTime = _formatPerformanceTime(performance);
+        final session = recentSessions[index] as Map<String, dynamic>;
+        final riderName = session['rider']?['name'] ?? 'Unknown';
+        final horseName = session['rider']?['horseName'] ?? 'Unknown';
+        final performance =
+            session['performance'] as Map<String, dynamic>? ?? const {};
+        final formattedTime = _formatPerformanceTime(performance);
         final isSuccess = session['performance']?['isSuccess'] ?? false;
         final mode = session['event']?['mode'] ?? 'Unknown';
         final timestamp =
@@ -826,21 +827,13 @@ class _ReportingScreenState extends State<ReportingScreen> {
             ),
             title: Text('$riderName & $horseName'),
             subtitle: Text('$mode • ${_formatDate(timestamp)}'),
-            trailing: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  formattedTime,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isSuccess ? Colors.green.shade600 : Colors.red.shade600,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                _buildReportTimeLabels(formattedTime),
-              ],
+            trailing: Text(
+              formattedTime,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isSuccess ? Colors.green.shade600 : Colors.red.shade600,
+                fontSize: 16,
+              ),
             ),
           ),
         );
@@ -962,16 +955,12 @@ class _ReportingScreenState extends State<ReportingScreen> {
       );
     } else if (totalSecondsDouble != null) {
       final totalMillis = (totalSecondsDouble * 1000).round();
-      final adjustedMillis =
-          totalMillis - (totalMillis % 1000) + milliseconds;
+      final adjustedMillis = totalMillis - (totalMillis % 1000) + milliseconds;
       duration = Duration(milliseconds: adjustedMillis);
     } else {
       final int totalSecondsInt =
           _tryParseInt(performance['elapsedSeconds']) ?? 0;
-      duration = Duration(
-        seconds: totalSecondsInt,
-        milliseconds: milliseconds,
-      );
+      duration = Duration(seconds: totalSecondsInt, milliseconds: milliseconds);
     }
 
     if (duration.inMilliseconds == 0) {
@@ -1007,49 +996,6 @@ class _ReportingScreenState extends State<ReportingScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
-  }
-
-  Widget _buildReportTimeLabels(String timeString) {
-    // Check if hours are present (if the time format starts with non-zero hours)
-    final parts = timeString.split(':');
-    final hasHours = parts.isNotEmpty && parts[0] != '00';
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (hasHours) ...[
-          _buildReportTimeLabel('HH'),
-          _buildReportTimeSeparator(),
-        ],
-        _buildReportTimeLabel('MM'),
-        _buildReportTimeSeparator(),
-        _buildReportTimeLabel('SS'),
-        _buildReportTimeSeparator(),
-        _buildReportTimeLabel('MS'),
-      ],
-    );
-  }
-
-  Widget _buildReportTimeLabel(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: Colors.grey.shade600,
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReportTimeSeparator() {
-    return const SizedBox(width: 8);
   }
 }
 

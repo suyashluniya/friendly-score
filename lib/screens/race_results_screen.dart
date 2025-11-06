@@ -570,8 +570,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   Widget _buildTimeLabels() {
     // Determine which time format is being used
     bool hasHours = widget.elapsedHours > 0;
-    bool hasDetailedTime =
-        widget.elapsedHours > 0 ||
+    bool hasDetailedTime = widget.elapsedHours > 0 ||
         widget.elapsedMinutes > 0 ||
         widget.elapsedSecondsOnly > 0 ||
         widget.elapsedMilliseconds > 0;
@@ -584,7 +583,10 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (hasHours) ...[_buildTimeLabel('HH'), _buildTimeSeparator()],
+        if (hasHours) ...[
+          _buildTimeLabel('HH'),
+          _buildTimeSeparator(),
+        ],
         _buildTimeLabel('MM'),
         _buildTimeSeparator(),
         _buildTimeLabel('SS'),
