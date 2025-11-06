@@ -811,7 +811,6 @@ class _ReportingScreenState extends State<ReportingScreen> {
         final performance =
             session['performance'] as Map<String, dynamic>? ?? const {};
         final formattedTime = _formatPerformanceTime(performance);
-        final isSuccess = session['performance']?['isSuccess'] ?? false;
         final mode = session['event']?['mode'] ?? 'Unknown';
         final timestamp =
             DateTime.tryParse(session['timestamp'] ?? '') ?? DateTime.now();
@@ -841,28 +840,22 @@ class _ReportingScreenState extends State<ReportingScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: isSuccess
-                            ? Colors.green.shade100
-                            : Colors.red.shade100,
+                        color: _getSessionBackgroundColor(session),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            isSuccess ? Icons.check_circle : Icons.error,
+                            _getSessionIcon(session),
                             size: 16,
-                            color: isSuccess
-                                ? Colors.green.shade600
-                                : Colors.red.shade600,
+                            color: _getSessionTextColor(session),
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            isSuccess ? 'Success' : 'Failed',
+                            _getSessionStatus(session),
                             style: TextStyle(
-                              color: isSuccess
-                                  ? Colors.green.shade600
-                                  : Colors.red.shade600,
+                              color: _getSessionTextColor(session),
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
                             ),
@@ -1149,6 +1142,47 @@ class _ReportingScreenState extends State<ReportingScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  // Helper methods for session status
+  String _getSessionStatus(Map<String, dynamic> session) {
+    final performance = session['performance'] as Map<String, dynamic>? ?? {};
+    final isSuccess = performance['isSuccess'] ?? false;
+    final isStopped = performance['isStopped'] ?? false;
+    
+    if (isSuccess) return 'Success';
+    if (isStopped) return 'Stopped';
+    return 'Failed';
+  }
+
+  IconData _getSessionIcon(Map<String, dynamic> session) {
+    final performance = session['performance'] as Map<String, dynamic>? ?? {};
+    final isSuccess = performance['isSuccess'] ?? false;
+    final isStopped = performance['isStopped'] ?? false;
+    
+    if (isSuccess) return Icons.check_circle;
+    if (isStopped) return Icons.stop_circle;
+    return Icons.error;
+  }
+
+  Color _getSessionBackgroundColor(Map<String, dynamic> session) {
+    final performance = session['performance'] as Map<String, dynamic>? ?? {};
+    final isSuccess = performance['isSuccess'] ?? false;
+    final isStopped = performance['isStopped'] ?? false;
+    
+    if (isSuccess) return Colors.green.shade100;
+    if (isStopped) return Colors.orange.shade100;
+    return Colors.red.shade100;
+  }
+
+  Color _getSessionTextColor(Map<String, dynamic> session) {
+    final performance = session['performance'] as Map<String, dynamic>? ?? {};
+    final isSuccess = performance['isSuccess'] ?? false;
+    final isStopped = performance['isStopped'] ?? false;
+    
+    if (isSuccess) return Colors.green.shade600;
+    if (isStopped) return Colors.orange.shade600;
+    return Colors.red.shade600;
   }
 }
 
