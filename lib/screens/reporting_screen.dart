@@ -880,7 +880,7 @@ class _ReportingScreenState extends State<ReportingScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.blue.shade700,
-                              fontSize: 16,
+                              fontSize: 12,
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -888,9 +888,11 @@ class _ReportingScreenState extends State<ReportingScreen> {
                           Text(
                             'HH:MM:SS:MS',
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 12,
                               color: Colors.blue.shade500,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.bold,
+                              // fontFamily: 'monospace',
+
                             ),
                           ),
                         ],
