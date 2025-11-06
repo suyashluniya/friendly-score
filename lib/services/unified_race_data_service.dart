@@ -270,6 +270,7 @@ class UnifiedRaceDataService {
           'targetSeconds': maxSeconds,
           'targetMilliseconds': 0,
           'isSuccess': isSuccess,
+          'isStopped': raceStatus == 'stopped', // Add isStopped field for badges
           'status': _getStatusString(isSuccess, raceStatus),
           'improvementPercentage': improvementPercentage,
         },
