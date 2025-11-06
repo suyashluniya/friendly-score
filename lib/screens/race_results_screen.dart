@@ -251,18 +251,20 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                       children: [
                         Text(
                           _formatTimeWithMilliseconds(),
-                          style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 42, // Slightly smaller to fit milliseconds
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                          style: Theme.of(context).textTheme.displayLarge
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize:
+                                    42, // Slightly smaller to fit milliseconds
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
                         ),
                         const SizedBox(height: 8),
                         // Time labels
@@ -568,9 +570,12 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   Widget _buildTimeLabels() {
     // Determine which time format is being used
     bool hasHours = widget.elapsedHours > 0;
-    bool hasDetailedTime = widget.elapsedHours > 0 || widget.elapsedMinutes > 0 || 
-                          widget.elapsedSecondsOnly > 0 || widget.elapsedMilliseconds > 0;
-    
+    bool hasDetailedTime =
+        widget.elapsedHours > 0 ||
+        widget.elapsedMinutes > 0 ||
+        widget.elapsedSecondsOnly > 0 ||
+        widget.elapsedMilliseconds > 0;
+
     if (!hasDetailedTime) {
       // Fallback format calculation
       hasHours = (widget.elapsedSeconds ~/ 3600) > 0;
@@ -579,10 +584,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (hasHours) ...[
-          _buildTimeLabel('HH'),
-          _buildTimeSeparator(),
-        ],
+        if (hasHours) ...[_buildTimeLabel('HH'), _buildTimeSeparator()],
         _buildTimeLabel('MM'),
         _buildTimeSeparator(),
         _buildTimeLabel('SS'),

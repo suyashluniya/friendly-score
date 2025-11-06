@@ -182,9 +182,7 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('System Armed'),
-      ),
+      appBar: AppBar(title: const Text('System Armed')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -334,7 +332,10 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildSummaryRow('Rider', widget.riderName),
-                    _buildSummaryRow('Horse', '${widget.horseName} (${widget.horseId})'),
+                    _buildSummaryRow(
+                      'Horse',
+                      '${widget.horseName} (${widget.horseId})',
+                    ),
                     _buildSummaryRow('Event', widget.eventName),
                     _buildSummaryRow(
                       'Time',
@@ -363,15 +364,16 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.check_circle_outline, color: Colors.white, size: 24),
+                        const Icon(
+                          Icons.check_circle_outline,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           'SYSTEM READY',
                           style: Theme.of(context).textTheme.labelLarge
-                              ?.copyWith(
-                                color: Colors.white,
-                                letterSpacing: 1,
-                              ),
+                              ?.copyWith(color: Colors.white, letterSpacing: 1),
                         ),
                       ],
                     ),
@@ -391,18 +393,23 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.red,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.red, width: 2),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.power_settings_new, color: Colors.white, size: 24),
+                      const Icon(
+                        Icons.power_settings_new,
+                        color: Colors.red,
+                        size: 24,
+                      ),
                       const SizedBox(width: 12),
                       Text(
                         'DISARM DEVICE',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: Colors.white,
+                          color: Colors.red,
                           letterSpacing: 1,
                         ),
                       ),

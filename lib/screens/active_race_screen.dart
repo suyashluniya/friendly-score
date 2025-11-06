@@ -313,7 +313,9 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     // Send disarm command to device to stop the race
     bool sent = await btService.sendData('d1,e0');
     if (sent) {
-      print('✅ ACTIVE RACE: Stop race signal sent successfully to ESP32: d1,e0');
+      print(
+        '✅ ACTIVE RACE: Stop race signal sent successfully to ESP32: d1,e0',
+      );
 
       // Calculate current elapsed time for the stopped race
       final currentTime = _elapsedSeconds;
@@ -373,9 +375,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
             children: [
               Icon(Icons.error_outline, color: Colors.white),
               SizedBox(width: 12),
-              Expanded(
-                child: Text('Failed to stop race. Please try again.'),
-              ),
+              Expanded(child: Text('Failed to stop race. Please try again.')),
             ],
           ),
           backgroundColor: Colors.red.shade600,
@@ -635,20 +635,19 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                       vertical: 14,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.red,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.red, width: 2),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.stop, color: Colors.white, size: 24),
+                        const Icon(Icons.stop, color: Colors.red, size: 24),
                         const SizedBox(width: 12),
                         Text(
                           'STOP RACE',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: Colors.white,
-                            letterSpacing: 1,
-                          ),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(color: Colors.red, letterSpacing: 1),
                         ),
                       ],
                     ),

@@ -796,12 +796,21 @@ class _ReportingScreenState extends State<ReportingScreen> {
             ),
             title: Text('$riderName & $horseName'),
             subtitle: Text('$mode • ${_formatDate(timestamp)}'),
-            trailing: Text(
-              formattedTime,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isSuccess ? Colors.green.shade600 : Colors.red.shade600,
-              ),
+            trailing: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  formattedTime,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isSuccess ? Colors.green.shade600 : Colors.red.shade600,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                _buildReportTimeLabels(formattedTime),
+              ],
             ),
           ),
         );
@@ -968,6 +977,49 @@ class _ReportingScreenState extends State<ReportingScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Widget _buildReportTimeLabels(String timeString) {
+    // Check if hours are present (if the time format starts with non-zero hours)
+    final parts = timeString.split(':');
+    final hasHours = parts.isNotEmpty && parts[0] != '00';
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasHours) ...[
+          _buildReportTimeLabel('HH'),
+          _buildReportTimeSeparator(),
+        ],
+        _buildReportTimeLabel('MM'),
+        _buildReportTimeSeparator(),
+        _buildReportTimeLabel('SS'),
+        _buildReportTimeSeparator(),
+        _buildReportTimeLabel('MS'),
+      ],
+    );
+  }
+
+  Widget _buildReportTimeLabel(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: Colors.grey.shade600,
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReportTimeSeparator() {
+    return const SizedBox(width: 8);
   }
 }
 
