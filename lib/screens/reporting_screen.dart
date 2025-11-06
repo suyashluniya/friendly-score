@@ -163,7 +163,37 @@ class _ReportingScreenState extends State<ReportingScreen> {
                 ),
               ).animate().fadeIn(duration: 800.ms).slideY(begin: -0.2),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+
+              // Timing Format Note
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.blue.shade600,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'All timing displays are in HH:MM:SS:MS format (Hours:Minutes:Seconds:Milliseconds)',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 600.ms, delay: 800.ms),
+
+              const SizedBox(height: 24),
 
               // Quick Stats Section
               Text(
