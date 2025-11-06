@@ -185,11 +185,14 @@ class _ReportingScreenState extends State<ReportingScreen> {
                       size: 20,
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      'All timing displays are in HH:MM:SS:MS format (Hours:Minutes:Seconds:Milliseconds)',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.blue.shade700,
-                        fontWeight: FontWeight.w500,
+                    Expanded(
+                      child: Text(
+                        'All timing displays are in HH:MM:SS:MS format (Hours:Minutes:Seconds:Milliseconds)',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        softWrap: true,
                       ),
                     ),
                   ],
@@ -814,26 +817,176 @@ class _ReportingScreenState extends State<ReportingScreen> {
             DateTime.tryParse(session['timestamp'] ?? '') ?? DateTime.now();
 
         return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: isSuccess
-                  ? Colors.green.shade100
-                  : Colors.red.shade100,
-              child: Icon(
-                isSuccess ? Icons.check : Icons.close,
-                color: isSuccess ? Colors.green.shade600 : Colors.red.shade600,
-              ),
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: Colors.grey.shade300,
+              width: 1.0,
             ),
-            title: Text('$riderName & $horseName'),
-            subtitle: Text('$mode • ${_formatDate(timestamp)}'),
-            trailing: Text(
-              formattedTime,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isSuccess ? Colors.green.shade600 : Colors.red.shade600,
-                fontSize: 16,
-              ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header row with status and time
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSuccess
+                            ? Colors.green.shade100
+                            : Colors.red.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isSuccess ? Icons.check_circle : Icons.error,
+                            size: 16,
+                            color: isSuccess
+                                ? Colors.green.shade600
+                                : Colors.red.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isSuccess ? 'Success' : 'Failed',
+                            style: TextStyle(
+                              color: isSuccess
+                                  ? Colors.green.shade600
+                                  : Colors.red.shade600,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            formattedTime,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade700,
+                              fontSize: 16,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'HH:MM:SS:MS',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.blue.shade500,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Rider and horse information
+                Row(
+                  children: [
+                    Icon(
+                      FontAwesomeIcons.user,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        riderName,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      FontAwesomeIcons.horse,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        horseName,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Mode and date information
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: mode == 'Show Jumping'
+                            ? Colors.orange.shade100
+                            : Colors.purple.shade100,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        mode,
+                        style: TextStyle(
+                          color: mode == 'Show Jumping'
+                              ? Colors.orange.shade700
+                              : Colors.purple.shade700,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.calendar_today,
+                      size: 14,
+                      color: Colors.grey.shade500,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatDate(timestamp),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         );
