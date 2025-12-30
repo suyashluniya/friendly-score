@@ -11,10 +11,8 @@ class BluetoothFailedScreen extends StatelessWidget {
     required this.maxMinutes,
     required this.maxSeconds,
     required this.riderName,
-    required this.eventName,
-    required this.horseName,
-    required this.horseId,
-    required this.additionalDetails,
+    required this.riderNumber,
+    required this.photoPath,
     required this.errorMessage,
   });
 
@@ -27,10 +25,8 @@ class BluetoothFailedScreen extends StatelessWidget {
   final int maxMinutes;
   final int maxSeconds;
   final String riderName;
-  final String eventName;
-  final String horseName;
-  final String horseId;
-  final String additionalDetails;
+  final String riderNumber;
+  final String photoPath;
   final String errorMessage;
 
   @override

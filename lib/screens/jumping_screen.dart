@@ -1,93 +1,214 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../main.dart';
 import 'top_score_screen.dart';
 import 'normal_jumping_screen.dart';
 import '../services/mode_service.dart';
 
+/// Modern jumping mode selection screen
 class JumpingScreen extends StatelessWidget {
   const JumpingScreen({super.key});
   static const routeName = '/jumping';
 
   @override
   Widget build(BuildContext context) {
-    // Get the current mode to display the correct title
     final modeService = ModeService();
     final currentMode = modeService.getMode();
 
-    String appBarTitle;
+    String screenTitle;
+    String screenSubtitle;
+    IconData headerIcon;
+    Color headerColor;
+
     if (currentMode == ModeService.mountedSports) {
-      appBarTitle = 'Mounted Sports';
+      screenTitle = 'Mounted Sports';
+      screenSubtitle = 'Equestrian timing modes';
+      headerIcon = FontAwesomeIcons.horseHead;
+      headerColor = const Color(0xFF10B981);
     } else {
-      appBarTitle = 'Show Jumping'; // Default fallback
+      screenTitle = 'Show Jumping';
+      screenSubtitle = 'Competition timing modes';
+      headerIcon = FontAwesomeIcons.stopwatch;
+      headerColor = const Color(0xFF3B82F6);
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(appBarTitle)),
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 40),
-              // Title section
-              Column(
-                children: [
-                  Text(
-                    'Choose Your Mode',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Select the jumping mode for your event',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: const Color(0xFF6C757D),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 60),
-              Expanded(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 600),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Flexible(
-                          child: _JumpOptionButton(
-                            label: 'Top Score',
-                            description: 'Competitive mode with time limits',
-                            icon: FontAwesomeIcons.trophy,
-                            color: const Color(0xFFF59E0B),
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              TopScoreJumpingScreen.routeName,
+              // Custom App Bar
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Back Button
+                    GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.pop(context);
+                          },
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: AppShadows.card,
+                            ),
+                            child: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: AppColors.textPrimary,
+                              size: 22,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        Flexible(
-                          child: _JumpOptionButton(
-                            label: 'Normal',
-                            description: 'Practice mode for training sessions',
-                            icon: FontAwesomeIcons.personRunning,
-                            color: const Color(0xFF0066FF),
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              NormalJumpingScreen.routeName,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                        )
+                        .animate()
+                        .fadeIn(duration: 400.ms)
+                        .slideX(begin: -0.2),
+                    const Spacer(),
+                  ],
                 ),
               ),
+
+              // Header Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Icon Badge
+                    Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                headerColor,
+                                headerColor.withOpacity(0.7),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: headerColor.withOpacity(0.3),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: FaIcon(
+                              headerIcon,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(duration: 500.ms)
+                        .scale(begin: const Offset(0.8, 0.8)),
+
+                    const SizedBox(height: 20),
+
+                    // Title
+                    Text(
+                      screenTitle,
+                      style: GoogleFonts.poppins(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                        height: 1.2,
+                      ),
+                    ).animate().fadeIn(duration: 500.ms, delay: 100.ms).slideY(
+                          begin: 0.2,
+                        ),
+
+                    const SizedBox(height: 8),
+
+                    Text(
+                      screenSubtitle,
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textSecondary,
+                      ),
+                    ).animate().fadeIn(duration: 500.ms, delay: 150.ms),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 40),
+
+              // Section Label
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  'Select Timing Mode',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                    letterSpacing: 0.5,
+                  ),
+                ).animate().fadeIn(duration: 500.ms, delay: 200.ms),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Mode Cards
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    // Top Score Card
+                    _ModernJumpCard(
+                      title: 'Top Score',
+                      description:
+                          'Competition mode with time limits. Maximum time is doubled from selected time.',
+                      icon: FontAwesomeIcons.trophy,
+                      color: const Color(0xFFF59E0B),
+                      features: ['Time Limit', 'Fault Tracking', 'Competition'],
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pushNamed(
+                          context,
+                          TopScoreJumpingScreen.routeName,
+                        );
+                      },
+                      delay: 250,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Normal Mode Card
+                    _ModernJumpCard(
+                      title: 'Normal',
+                      description:
+                          'Practice mode for training. Maximum time equals selected time.',
+                      icon: FontAwesomeIcons.personRunning,
+                      color: AppColors.primary,
+                      features: ['Practice', 'Training', 'Flexible'],
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pushNamed(
+                          context,
+                          NormalJumpingScreen.routeName,
+                        );
+                      },
+                      delay: 350,
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 40),
             ],
           ),
@@ -97,79 +218,155 @@ class JumpingScreen extends StatelessWidget {
   }
 }
 
-class _JumpOptionButton extends StatelessWidget {
-  const _JumpOptionButton({
-    required this.label,
+class _ModernJumpCard extends StatelessWidget {
+  const _ModernJumpCard({
+    required this.title,
     required this.description,
     required this.icon,
     required this.color,
+    required this.features,
     required this.onTap,
+    required this.delay,
   });
-  final String label;
+
+  final String title;
   final String description;
   final IconData icon;
   final Color color;
+  final List<String> features;
   final VoidCallback onTap;
+  final int delay;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        constraints: const BoxConstraints(minHeight: 100),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Row(
-            children: [
-              // Icon container
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                alignment: Alignment.center,
-                child: FaIcon(icon, size: 36, color: color),
-              ),
-              const SizedBox(width: 24),
-              // Text content
-              Expanded(
+    return Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: AppShadows.card,
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(24),
+              onTap: onTap,
+              splashColor: color.withOpacity(0.1),
+              highlightColor: color.withOpacity(0.05),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        // Icon
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                color,
+                                color.withOpacity(0.7),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: color.withOpacity(0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: FaIcon(
+                              icon,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        // Arrow
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.arrow_forward_rounded,
+                            color: color,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Title
                     Text(
-                      label,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 6),
+
+                    const SizedBox(height: 8),
+
+                    // Description
                     Text(
                       description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF6C757D),
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textSecondary,
+                        height: 1.5,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Feature Tags
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: features.map((feature) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            feature,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: color,
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              // Arrow icon
-              Icon(Icons.arrow_forward_ios, size: 20, color: color),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        )
+        .animate()
+        .fadeIn(duration: 500.ms, delay: Duration(milliseconds: delay))
+        .slideY(begin: 0.1);
   }
 }
