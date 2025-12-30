@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:demo/services/location_service.dart';
 import 'package:demo/services/mode_service.dart';
 import 'package:flutter/material.dart';
-import 'rider_details_screen.dart';
+import 'mode_selection_screen.dart';
 import '../services/unified_race_data_service.dart';
 
 class RaceResultsScreen extends StatefulWidget {
@@ -44,11 +44,13 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   bool _isSaved = false;
 
   bool get _isStoppedRace => widget.raceStatus == 'stopped';
+  bool get _isDisqualifiedRace => widget.raceStatus == 'disqualified';
+  bool get _isFinishedRace => widget.raceStatus == 'finished';
 
   Color _getResultColor() {
-    if (_isStoppedRace) {
+    if (_isStoppedRace || _isDisqualifiedRace) {
       return const Color(0xFFEF4444);
-    } else if (widget.isSuccess) {
+    } else if (widget.isSuccess || _isFinishedRace) {
       return const Color(0xFF10B981);
     } else {
       return const Color(0xFFF59E0B);
@@ -56,9 +58,11 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   }
 
   IconData _getResultIcon() {
-    if (_isStoppedRace) {
+    if (_isDisqualifiedRace) {
+      return Icons.cancel;
+    } else if (_isStoppedRace) {
       return Icons.stop_circle;
-    } else if (widget.isSuccess) {
+    } else if (widget.isSuccess || _isFinishedRace) {
       return Icons.check_circle;
     } else {
       return Icons.access_time;
@@ -66,9 +70,11 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   }
 
   String _getResultTitle() {
-    if (_isStoppedRace) {
+    if (_isDisqualifiedRace) {
+      return 'Race Disqualified';
+    } else if (_isStoppedRace) {
       return 'Race Stopped';
-    } else if (widget.isSuccess) {
+    } else if (_isFinishedRace || widget.isSuccess) {
       return 'Race Completed!';
     } else {
       return 'Time Exceeded';
@@ -398,32 +404,13 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () async {
-                        int totalMaxSeconds = widget.maxSeconds;
-                        int selectedTotalSeconds = totalMaxSeconds ~/ 2;
-
-                        int nextSelectedHours = selectedTotalSeconds ~/ 3600;
-                        int nextSelectedMinutes =
-                            (selectedTotalSeconds % 3600) ~/ 60;
-                        int nextSelectedSeconds = selectedTotalSeconds % 60;
-
-                        int nextMaxHours = totalMaxSeconds ~/ 3600;
-                        int nextMaxMinutes = (totalMaxSeconds % 3600) ~/ 60;
-                        int nextMaxSeconds = totalMaxSeconds % 60;
-
-                        Navigator.of(context).pushNamed(
-                          RiderDetailsScreen.routeName,
-                          arguments: {
-                            'selectedHours': nextSelectedHours,
-                            'selectedMinutes': nextSelectedMinutes,
-                            'selectedSeconds': nextSelectedSeconds,
-                            'maxHours': nextMaxHours,
-                            'maxMinutes': nextMaxMinutes,
-                            'maxSeconds': nextMaxSeconds,
-                          },
+                      onPressed: () {
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          ModeSelectionScreen.routeName,
+                          (route) => false,
                         );
                       },
-                      icon: const Icon(Icons.person_add_outlined),
+                      icon: const Icon(Icons.sports_outlined),
                       label: const Text('NEXT'),
                     ),
                   ),

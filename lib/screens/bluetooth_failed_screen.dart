@@ -128,7 +128,7 @@ class BluetoothFailedScreen extends StatelessWidget {
                     ],
                   ),
                 ).animate().fadeIn(duration: 600.ms, delay: 400.ms),
-                const Spacer(),
+                const SizedBox(height: 40),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(

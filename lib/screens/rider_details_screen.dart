@@ -101,6 +101,11 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
     await btService.sendData(payload);
   }
 
+  String _generateDummyRiderNumber() {
+    final now = DateTime.now();
+    return '${now.hour}${now.minute}${now.second}';
+  }
+
   void _handleSave() async {
     if (_capturedImage == null || !_isPhotoAccepted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -115,6 +120,14 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
     if (_formKey.currentState!.validate()) {
       await _sendDeviceResetSignal();
 
+      // Use dummy values if name/number are empty
+      final riderName = _riderNameController.text.trim().isEmpty
+          ? 'Unknown Rider'
+          : _riderNameController.text.trim();
+      final riderNumber = _riderNumberController.text.trim().isEmpty
+          ? _generateDummyRiderNumber()
+          : _riderNumberController.text.trim();
+
       if (mounted) {
         Navigator.of(context).pushNamed(
           TimerStartScreen.routeName,
@@ -125,8 +138,8 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
             'maxHours': widget.maxHours,
             'maxMinutes': widget.maxMinutes,
             'maxSeconds': widget.maxSeconds,
-            'riderName': _riderNameController.text.trim(),
-            'riderNumber': _riderNumberController.text.trim(),
+            'riderName': riderName,
+            'riderNumber': riderNumber,
             'photoPath': _capturedImage!.path,
           },
         );

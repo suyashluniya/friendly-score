@@ -37,6 +37,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   late DateTime _startTime;
   late AnimationController _pulseController;
   StreamSubscription? _bluetoothSubscription;
+  bool _isPaused = false;
 
   @override
   void initState() {
@@ -71,15 +72,260 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _elapsedSeconds++;
+      if (!_isPaused) {
+        setState(() {
+          _elapsedSeconds++;
 
-        // Check if maximum time exceeded
-        if (_elapsedSeconds >= _maxTimeSeconds) {
-          _handleTimeExpired();
-        }
-      });
+          // Check if maximum time exceeded
+          if (_elapsedSeconds >= _maxTimeSeconds) {
+            _handleTimeExpired();
+          }
+        });
+      }
     });
+  }
+
+  void _togglePause() {
+    setState(() {
+      _isPaused = !_isPaused;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              _isPaused ? Icons.pause_circle : Icons.play_circle,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(_isPaused ? 'Race paused' : 'Race resumed'),
+            ),
+          ],
+        ),
+        backgroundColor: _isPaused ? Colors.orange.shade600 : Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 1),
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showFinishRaceConfirmation() async {
+    final bool? shouldFinish = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Finish Race'),
+          content: const Text(
+            'Do you want to finish the race? This will mark the race as completed.',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Finish Race'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldFinish == true) {
+      await _finishRace();
+    }
+  }
+
+  Future<void> _finishRace() async {
+    final btService = BluetoothService();
+
+    bool sent = await btService.sendData('d1,e0');
+    if (sent) {
+      final currentTime = _elapsedSeconds;
+      final hours = currentTime ~/ 3600;
+      final minutes = (currentTime % 3600) ~/ 60;
+      final seconds = currentTime % 60;
+
+      _timer.cancel();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(child: Text('Race finished successfully')),
+            ],
+          ),
+          backgroundColor: Colors.green.shade600,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        final isSuccess = currentTime <= _maxTimeSeconds;
+        Navigator.of(context).pushReplacementNamed(
+          RaceResultsScreen.routeName,
+          arguments: {
+            'elapsedSeconds': currentTime,
+            'elapsedHours': hours,
+            'elapsedMinutes': minutes,
+            'elapsedSecondsOnly': seconds,
+            'elapsedMilliseconds': 0,
+            'maxSeconds': _maxTimeSeconds,
+            'riderName': widget.riderName,
+            'riderNumber': widget.riderNumber,
+            'photoPath': widget.photoPath,
+            'isSuccess': isSuccess,
+            'raceStatus': 'finished',
+          },
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(child: Text('Failed to finish race. Please try again.')),
+            ],
+          ),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showDisqualifyConfirmation() async {
+    final bool? shouldDisqualify = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Disqualify Race'),
+          content: const Text(
+            'Are you sure you want to disqualify this race? This action cannot be undone.',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Disqualify'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDisqualify == true) {
+      await _disqualifyRace();
+    }
+  }
+
+  Future<void> _disqualifyRace() async {
+    final btService = BluetoothService();
+
+    bool sent = await btService.sendData('d1,e0');
+    if (sent) {
+      final currentTime = _elapsedSeconds;
+      final hours = currentTime ~/ 3600;
+      final minutes = (currentTime % 3600) ~/ 60;
+      final seconds = currentTime % 60;
+
+      _timer.cancel();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.cancel, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(child: Text('Race has been disqualified')),
+            ],
+          ),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed(
+          RaceResultsScreen.routeName,
+          arguments: {
+            'elapsedSeconds': currentTime,
+            'elapsedHours': hours,
+            'elapsedMinutes': minutes,
+            'elapsedSecondsOnly': seconds,
+            'elapsedMilliseconds': 0,
+            'maxSeconds': _maxTimeSeconds,
+            'riderName': widget.riderName,
+            'riderNumber': widget.riderNumber,
+            'photoPath': widget.photoPath,
+            'isSuccess': false,
+            'raceStatus': 'disqualified',
+          },
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(child: Text('Failed to disqualify race. Please try again.')),
+            ],
+          ),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
 
   void _listenForStopSignal() {
@@ -588,27 +834,34 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981),
+                    color: _isPaused ? Colors.orange : const Color(0xFF10B981),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                            width: 10,
-                            height: 10,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                          )
-                          .animate(onPlay: (controller) => controller.repeat())
-                          .fadeOut(duration: 1000.ms)
-                          .then()
-                          .fadeIn(duration: 1000.ms),
+                      if (!_isPaused)
+                        Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                            .animate(onPlay: (controller) => controller.repeat())
+                            .fadeOut(duration: 1000.ms)
+                            .then()
+                            .fadeIn(duration: 1000.ms)
+                      else
+                        const Icon(
+                          Icons.pause,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       const SizedBox(width: 12),
                       Text(
-                        'WAITING FOR FINISH',
+                        _isPaused ? 'RACE PAUSED' : 'WAITING FOR FINISH',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: Colors.white,
                           letterSpacing: 1,
@@ -618,35 +871,174 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                   ),
                 ).animate().fadeIn(duration: 600.ms, delay: 400.ms),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
-                // Stop Race Button
-                GestureDetector(
-                  onTap: _showStopRaceConfirmation,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.red, width: 2),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.stop, color: Colors.red, size: 24),
-                        const SizedBox(width: 12),
-                        Text(
-                          'STOP RACE',
-                          style: Theme.of(context).textTheme.labelLarge
-                              ?.copyWith(color: Colors.red, letterSpacing: 1),
+                // Race Control Buttons - Modern Design
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      // Pause/Resume Button
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _togglePause,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: _isPaused
+                                    ? [const Color(0xFF10B981), const Color(0xFF059669)]
+                                    : [const Color(0xFFF59E0B), const Color(0xFFD97706)],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (_isPaused ? const Color(0xFF10B981) : const Color(0xFFF59E0B))
+                                      .withOpacity(0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _isPaused ? 'RESUME' : 'PAUSE',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Finish Race Button
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _showFinishRaceConfirmation,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF10B981), Color(0xFF047857)],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF10B981).withOpacity(0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.flag_rounded,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'FINISH',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Disqualify Button
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _showDisqualifyConfirmation,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFEF4444).withOpacity(0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.block_rounded,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'DISQUALIFY',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ).animate().fadeIn(duration: 600.ms, delay: 600.ms),
+                ).animate().fadeIn(duration: 600.ms, delay: 600.ms).slideY(begin: 0.2),
 
                 const SizedBox(height: 24),
               ],
