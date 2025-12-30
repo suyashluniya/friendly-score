@@ -14,8 +14,10 @@ class RaceResultsScreen extends StatefulWidget {
     this.elapsedMilliseconds = 0,
     required this.maxSeconds,
     required this.riderName,
-    required this.riderNumber,
-    required this.photoPath,
+    required this.eventName,
+    required this.horseName,
+    required this.horseId,
+    required this.additionalDetails,
     required this.isSuccess,
     this.raceStatus,
   });
@@ -29,8 +31,10 @@ class RaceResultsScreen extends StatefulWidget {
   final int elapsedMilliseconds;
   final int maxSeconds;
   final String riderName;
-  final String riderNumber;
-  final String photoPath;
+  final String eventName;
+  final String horseName;
+  final String horseId;
+  final String additionalDetails;
   final bool isSuccess;
   final String? raceStatus;
 
@@ -84,8 +88,10 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
 
       final success = await dataService.saveRaceData(
         riderName: widget.riderName,
-        riderNumber: widget.riderNumber,
-        photoPath: widget.photoPath,
+        eventName: widget.eventName,
+        horseName: widget.horseName,
+        horseId: widget.horseId,
+        additionalDetails: widget.additionalDetails,
         elapsedSeconds: widget.elapsedSeconds,
         maxSeconds: widget.maxSeconds,
         isSuccess: widget.isSuccess,
@@ -310,26 +316,30 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    if (widget.riderName.isNotEmpty) ...[
-                      _buildDetailRow(
-                        context,
-                        Icons.person,
-                        'Rider',
-                        widget.riderName,
-                        Colors.blue.shade600,
-                      ),
-                      const Divider(height: 20),
-                    ],
-                    if (widget.riderNumber.isNotEmpty) ...[
-                      _buildDetailRow(
-                        context,
-                        Icons.numbers,
-                        'Number',
-                        widget.riderNumber,
-                        Colors.indigo.shade600,
-                      ),
-                      const Divider(height: 20),
-                    ],
+                    _buildDetailRow(
+                      context,
+                      Icons.person,
+                      'Rider',
+                      widget.riderName,
+                      Colors.blue.shade600,
+                    ),
+                    const Divider(height: 20),
+                    _buildDetailRow(
+                      context,
+                      Icons.pets,
+                      'Horse',
+                      '${widget.horseName} (${widget.horseId})',
+                      Colors.brown.shade600,
+                    ),
+                    const Divider(height: 20),
+                    _buildDetailRow(
+                      context,
+                      Icons.event,
+                      'Event',
+                      widget.eventName,
+                      Colors.purple.shade600,
+                    ),
+                    const Divider(height: 20),
                     FutureBuilder<Map<String, dynamic>?>(
                       future: LocationService().loadLocation(),
                       builder: (context, snapshot) {
@@ -353,6 +363,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                         return const SizedBox.shrink();
                       },
                     ),
+                    const Divider(height: 20),
                     _buildDetailRow(
                       context,
                       Icons.sports,
@@ -360,6 +371,16 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                       ModeService().getModeDisplayName(),
                       Colors.orange.shade600,
                     ),
+                    if (widget.additionalDetails.isNotEmpty) ...[
+                      const Divider(height: 20),
+                      _buildDetailRow(
+                        context,
+                        Icons.info_outline,
+                        'Notes',
+                        widget.additionalDetails,
+                        Colors.grey.shade600,
+                      ),
+                    ],
                   ],
                 ),
               ),

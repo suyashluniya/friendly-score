@@ -34,40 +34,35 @@ void main() {
   runApp(const MyApp());
 }
 
-// Modern Design System Colors - Blinkit-Inspired Fresh Green Theme
+// Modern Design System Colors
 class AppColors {
-  // Primary colors - Fresh Green (Blinkit-style)
-  static const Color primary = Color(0xFF00B37E);
-  static const Color primaryDark = Color(0xFF009966);
-  static const Color primaryLight = Color(0xFF33CC99);
-  static const Color primarySoft = Color(0xFFE6F7F1);
+  // Primary colors - Modern blue palette
+  static const Color primary = Color(0xFF0066FF);
+  static const Color primaryDark = Color(0xFF0052CC);
+  static const Color primaryLight = Color(0xFF3385FF);
 
-  // Background colors - Clean whites
-  static const Color background = Color(0xFFF5F5F5);
+  // Neutral colors - Clean grays
+  static const Color background = Color(0xFFF8F9FA);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF8F9FA);
+  static const Color surfaceVariant = Color(0xFFF1F3F5);
 
-  // Text colors - Strong contrast
-  static const Color textPrimary = Color(0xFF1C1C1C);
-  static const Color textSecondary = Color(0xFF666666);
-  static const Color textTertiary = Color(0xFF999999);
-  static const Color textOnPrimary = Color(0xFFFFFFFF);
+  // Text colors
+  static const Color textPrimary = Color(0xFF1A1D1F);
+  static const Color textSecondary = Color(0xFF6C757D);
+  static const Color textTertiary = Color(0xFF9FA6AD);
 
   // Semantic colors
-  static const Color success = Color(0xFF00B37E);
-  static const Color warning = Color(0xFFFFB020);
-  static const Color error = Color(0xFFFF4757);
-  static const Color info = Color(0xFF2196F3);
+  static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color error = Color(0xFFEF4444);
+  static const Color info = Color(0xFF3B82F6);
 
   // Border colors
-  static const Color border = Color(0xFFE8E8E8);
-  static const Color borderLight = Color(0xFFF0F0F0);
-
-  // Card shadow color
-  static const Color shadowColor = Color(0x0F000000);
+  static const Color border = Color(0xFFE5E7EB);
+  static const Color borderLight = Color(0xFFF3F4F6);
 }
 
-// Consistent spacing values (8px grid)
+// Consistent spacing values
 class AppSpacing {
   static const double xs = 4.0;
   static const double sm = 8.0;
@@ -75,7 +70,6 @@ class AppSpacing {
   static const double lg = 24.0;
   static const double xl = 32.0;
   static const double xxl = 48.0;
-  static const double xxxl = 64.0;
 }
 
 // Consistent border radius
@@ -88,33 +82,6 @@ class AppRadius {
   static const double full = 999.0;
 }
 
-// Modern shadows
-class AppShadows {
-  static List<BoxShadow> get card => [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.06),
-          blurRadius: 20,
-          offset: const Offset(0, 4),
-        ),
-      ];
-
-  static List<BoxShadow> get cardHover => [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.1),
-          blurRadius: 30,
-          offset: const Offset(0, 8),
-        ),
-      ];
-
-  static List<BoxShadow> get button => [
-        BoxShadow(
-          color: AppColors.primary.withOpacity(0.3),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
-      ];
-}
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -122,17 +89,17 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Sport Timer Pro',
+      title: 'Timing App',
       theme: ThemeData(
-        // Color Scheme - Fresh Green
+        // Color Scheme
         colorScheme: ColorScheme.light(
           primary: AppColors.primary,
           primaryContainer: AppColors.primaryLight,
-          secondary: AppColors.primaryDark,
+          secondary: AppColors.textSecondary,
           surface: AppColors.surface,
           surfaceContainerHighest: AppColors.surfaceVariant,
           error: AppColors.error,
-          onPrimary: AppColors.textOnPrimary,
+          onPrimary: Colors.white,
           onSurface: AppColors.textPrimary,
           onSurfaceVariant: AppColors.textSecondary,
           outline: AppColors.border,
@@ -141,113 +108,112 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.background,
         useMaterial3: true,
 
-        // Typography with Poppins
-        textTheme: GoogleFonts.poppinsTextTheme().copyWith(
-          // Display styles - Bold & Impactful
-          displayLarge: GoogleFonts.poppins(
-            fontSize: 48,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
-            color: AppColors.textPrimary,
-          ),
-          displayMedium: GoogleFonts.poppins(
-            fontSize: 40,
+        // Typography
+        textTheme: GoogleFonts.interTextTheme().copyWith(
+          // Display styles
+          displayLarge: GoogleFonts.inter(
+            fontSize: 57,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.25,
             color: AppColors.textPrimary,
           ),
-          displaySmall: GoogleFonts.poppins(
-            fontSize: 32,
+          displayMedium: GoogleFonts.inter(
+            fontSize: 45,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+          displaySmall: GoogleFonts.inter(
+            fontSize: 36,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
 
           // Headline styles
-          headlineLarge: GoogleFonts.poppins(
+          headlineLarge: GoogleFonts.inter(
             fontSize: 32,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
-          headlineMedium: GoogleFonts.poppins(
-            fontSize: 24,
+          headlineMedium: GoogleFonts.inter(
+            fontSize: 28,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
-          headlineSmall: GoogleFonts.poppins(
-            fontSize: 20,
+          headlineSmall: GoogleFonts.inter(
+            fontSize: 24,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
 
           // Title styles
-          titleLarge: GoogleFonts.poppins(
-            fontSize: 18,
+          titleLarge: GoogleFonts.inter(
+            fontSize: 20,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
-          titleMedium: GoogleFonts.poppins(
+          titleMedium: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.1,
+            letterSpacing: 0.15,
             color: AppColors.textPrimary,
           ),
-          titleSmall: GoogleFonts.poppins(
+          titleSmall: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.1,
             color: AppColors.textPrimary,
           ),
 
-          // Body styles - Clean & Readable
-          bodyLarge: GoogleFonts.poppins(
+          // Body styles
+          bodyLarge: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w400,
-            letterSpacing: 0.15,
+            letterSpacing: 0.5,
             color: AppColors.textPrimary,
           ),
-          bodyMedium: GoogleFonts.poppins(
+          bodyMedium: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            letterSpacing: 0.15,
+            letterSpacing: 0.25,
             color: AppColors.textSecondary,
           ),
-          bodySmall: GoogleFonts.poppins(
+          bodySmall: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w400,
-            letterSpacing: 0.2,
+            letterSpacing: 0.4,
             color: AppColors.textTertiary,
           ),
 
-          // Label styles - Semi-bold
-          labelLarge: GoogleFonts.poppins(
+          // Label styles
+          labelLarge: GoogleFonts.inter(
             fontSize: 14,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             letterSpacing: 0.1,
             color: AppColors.textPrimary,
           ),
-          labelMedium: GoogleFonts.poppins(
+          labelMedium: GoogleFonts.inter(
             fontSize: 12,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.25,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
             color: AppColors.textSecondary,
           ),
-          labelSmall: GoogleFonts.poppins(
+          labelSmall: GoogleFonts.inter(
             fontSize: 11,
             fontWeight: FontWeight.w500,
-            letterSpacing: 0.25,
+            letterSpacing: 0.5,
             color: AppColors.textTertiary,
           ),
         ),
 
-        // AppBar Theme - Clean & Minimal
+        // AppBar Theme
         appBarTheme: AppBarTheme(
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
-          backgroundColor: AppColors.surface,
+          backgroundColor: AppColors.background,
           foregroundColor: AppColors.textPrimary,
           surfaceTintColor: Colors.transparent,
-          titleTextStyle: GoogleFonts.poppins(
+          titleTextStyle: GoogleFonts.inter(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
@@ -259,25 +225,25 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        // Button Themes - 56px height, bold
+        // Button Themes
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.textOnPrimary,
+            foregroundColor: Colors.white,
             elevation: 0,
             shadowColor: Colors.transparent,
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.lg,
               vertical: AppSpacing.md,
             ),
-            minimumSize: const Size(double.infinity, 56),
+            minimumSize: const Size(0, 52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.lg),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            textStyle: GoogleFonts.poppins(
+            textStyle: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.25,
+              letterSpacing: 0.5,
             ),
           ),
         ),
@@ -289,15 +255,15 @@ class MyApp extends StatelessWidget {
               horizontal: AppSpacing.lg,
               vertical: AppSpacing.md,
             ),
-            minimumSize: const Size(double.infinity, 56),
+            minimumSize: const Size(0, 52),
             side: const BorderSide(color: AppColors.border, width: 1.5),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.lg),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            textStyle: GoogleFonts.poppins(
+            textStyle: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.25,
+              letterSpacing: 0.5,
             ),
           ),
         ),
@@ -309,40 +275,41 @@ class MyApp extends StatelessWidget {
               horizontal: AppSpacing.md,
               vertical: AppSpacing.sm,
             ),
-            textStyle: GoogleFonts.poppins(
+            textStyle: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.25,
+              letterSpacing: 0.5,
             ),
           ),
         ),
 
-        // Card Theme - Soft shadows, rounded
+        // Card Theme
         cardTheme: CardThemeData(
           color: AppColors.surface,
           elevation: 0,
-          shadowColor: AppColors.shadowColor,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.xl),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            side: const BorderSide(color: AppColors.borderLight, width: 1),
           ),
           margin: EdgeInsets.zero,
         ),
 
-        // Input Decoration Theme - Modern fields
+        // Input Decoration Theme
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: AppColors.surfaceVariant,
+          fillColor: AppColors.surface,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
-            vertical: AppSpacing.md + 2,
+            vertical: AppSpacing.md,
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
-            borderSide: BorderSide.none,
+            borderSide: const BorderSide(color: AppColors.border, width: 1.5),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
-            borderSide: BorderSide.none,
+            borderSide: const BorderSide(color: AppColors.border, width: 1.5),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
@@ -356,20 +323,15 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadius.md),
             borderSide: const BorderSide(color: AppColors.error, width: 2),
           ),
-          labelStyle: GoogleFonts.poppins(
+          labelStyle: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: AppColors.textSecondary,
           ),
-          hintStyle: GoogleFonts.poppins(
+          hintStyle: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w400,
             color: AppColors.textTertiary,
-          ),
-          floatingLabelStyle: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.primary,
           ),
         ),
 
@@ -378,44 +340,6 @@ class MyApp extends StatelessWidget {
           color: AppColors.borderLight,
           thickness: 1,
           space: 1,
-        ),
-
-        // Bottom Sheet Theme
-        bottomSheetTheme: const BottomSheetThemeData(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(AppRadius.xxl),
-            ),
-          ),
-        ),
-
-        // Snackbar Theme
-        snackBarTheme: SnackBarThemeData(
-          backgroundColor: AppColors.textPrimary,
-          contentTextStyle: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
-
-        // Chip Theme
-        chipTheme: ChipThemeData(
-          backgroundColor: AppColors.primarySoft,
-          labelStyle: GoogleFonts.poppins(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: AppColors.primary,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.full),
-          ),
-          side: BorderSide.none,
         ),
       ),
       initialRoute: PinLoginScreen.routeName,
@@ -451,9 +375,11 @@ class MyApp extends StatelessWidget {
               maxHours: args['maxHours'] as int,
               maxMinutes: args['maxMinutes'] as int,
               maxSeconds: args['maxSeconds'] as int,
-              riderName: args['riderName'] as String? ?? '',
-              riderNumber: args['riderNumber'] as String? ?? '',
-              photoPath: args['photoPath'] as String? ?? '',
+              riderName: args['riderName'] as String,
+              eventName: args['eventName'] as String,
+              horseName: args['horseName'] as String,
+              horseId: args['horseId'] as String,
+              additionalDetails: args['additionalDetails'] as String,
             ),
           );
         } else if (settings.name == BluetoothReadyScreen.routeName) {
@@ -466,9 +392,11 @@ class MyApp extends StatelessWidget {
               maxHours: args['maxHours'] as int,
               maxMinutes: args['maxMinutes'] as int,
               maxSeconds: args['maxSeconds'] as int,
-              riderName: args['riderName'] as String? ?? '',
-              riderNumber: args['riderNumber'] as String? ?? '',
-              photoPath: args['photoPath'] as String? ?? '',
+              riderName: args['riderName'] as String,
+              eventName: args['eventName'] as String,
+              horseName: args['horseName'] as String,
+              horseId: args['horseId'] as String,
+              additionalDetails: args['additionalDetails'] as String,
             ),
           );
         } else if (settings.name == BluetoothFailedScreen.routeName) {
@@ -481,9 +409,11 @@ class MyApp extends StatelessWidget {
               maxHours: args['maxHours'] as int,
               maxMinutes: args['maxMinutes'] as int,
               maxSeconds: args['maxSeconds'] as int,
-              riderName: args['riderName'] as String? ?? '',
-              riderNumber: args['riderNumber'] as String? ?? '',
-              photoPath: args['photoPath'] as String? ?? '',
+              riderName: args['riderName'] as String,
+              eventName: args['eventName'] as String,
+              horseName: args['horseName'] as String,
+              horseId: args['horseId'] as String,
+              additionalDetails: args['additionalDetails'] as String,
               errorMessage: args['errorMessage'] as String,
             ),
           );
@@ -494,9 +424,11 @@ class MyApp extends StatelessWidget {
               maxHours: args['maxHours'] as int,
               maxMinutes: args['maxMinutes'] as int,
               maxSeconds: args['maxSeconds'] as int,
-              riderName: args['riderName'] as String? ?? '',
-              riderNumber: args['riderNumber'] as String? ?? '',
-              photoPath: args['photoPath'] as String? ?? '',
+              riderName: args['riderName'] as String,
+              eventName: args['eventName'] as String,
+              horseName: args['horseName'] as String,
+              horseId: args['horseId'] as String,
+              additionalDetails: args['additionalDetails'] as String,
             ),
           );
         } else if (settings.name == RaceResultsScreen.routeName) {
@@ -509,9 +441,11 @@ class MyApp extends StatelessWidget {
               elapsedSecondsOnly: args['elapsedSecondsOnly'] as int? ?? 0,
               elapsedMilliseconds: args['elapsedMilliseconds'] as int? ?? 0,
               maxSeconds: args['maxSeconds'] as int,
-              riderName: args['riderName'] as String? ?? '',
-              riderNumber: args['riderNumber'] as String? ?? '',
-              photoPath: args['photoPath'] as String? ?? '',
+              riderName: args['riderName'] as String,
+              eventName: args['eventName'] as String,
+              horseName: args['horseName'] as String,
+              horseId: args['horseId'] as String,
+              additionalDetails: args['additionalDetails'] as String,
               isSuccess: args['isSuccess'] as bool,
               raceStatus: args['raceStatus'] as String?,
             ),

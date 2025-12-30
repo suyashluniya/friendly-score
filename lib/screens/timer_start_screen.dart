@@ -14,8 +14,10 @@ class TimerStartScreen extends StatefulWidget {
     required this.maxMinutes,
     required this.maxSeconds,
     required this.riderName,
-    required this.riderNumber,
-    required this.photoPath,
+    required this.eventName,
+    required this.horseName,
+    required this.horseId,
+    required this.additionalDetails,
   });
 
   static const routeName = '/timer-start';
@@ -27,8 +29,10 @@ class TimerStartScreen extends StatefulWidget {
   final int maxMinutes;
   final int maxSeconds;
   final String riderName;
-  final String riderNumber;
-  final String photoPath;
+  final String eventName;
+  final String horseName;
+  final String horseId;
+  final String additionalDetails;
 
   @override
   State<TimerStartScreen> createState() => _TimerStartScreenState();
@@ -85,8 +89,10 @@ class _TimerStartScreenState extends State<TimerStartScreen>
               'maxMinutes': widget.maxMinutes,
               'maxSeconds': widget.maxSeconds,
               'riderName': widget.riderName,
-              'riderNumber': widget.riderNumber,
-              'photoPath': widget.photoPath,
+              'eventName': widget.eventName,
+              'horseName': widget.horseName,
+              'horseId': widget.horseId,
+              'additionalDetails': widget.additionalDetails,
             },
           );
         }
@@ -124,8 +130,10 @@ class _TimerStartScreenState extends State<TimerStartScreen>
             'maxMinutes': widget.maxMinutes,
             'maxSeconds': widget.maxSeconds,
             'riderName': widget.riderName,
-            'riderNumber': widget.riderNumber,
-            'photoPath': widget.photoPath,
+            'eventName': widget.eventName,
+            'horseName': widget.horseName,
+            'horseId': widget.horseId,
+            'additionalDetails': widget.additionalDetails,
           },
         );
       }
@@ -252,8 +260,10 @@ class _TimerStartScreenState extends State<TimerStartScreen>
         'maxMinutes': widget.maxMinutes,
         'maxSeconds': widget.maxSeconds,
         'riderName': widget.riderName,
-        'riderNumber': widget.riderNumber,
-        'photoPath': widget.photoPath,
+        'eventName': widget.eventName,
+        'horseName': widget.horseName,
+        'horseId': widget.horseId,
+        'additionalDetails': widget.additionalDetails,
         'errorMessage': error,
       },
     );
@@ -283,14 +293,16 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                 ),
                 child: Column(
                   children: [
-                    if (widget.riderName.isNotEmpty) ...[
-                      _buildInfoRow(Icons.person, 'Rider', widget.riderName),
-                      const Divider(height: 20),
-                    ],
-                    if (widget.riderNumber.isNotEmpty) ...[
-                      _buildInfoRow(Icons.numbers, 'Number', widget.riderNumber),
-                      const Divider(height: 20),
-                    ],
+                    _buildInfoRow(Icons.person, 'Rider', widget.riderName),
+                    const Divider(height: 20),
+                    _buildInfoRow(Icons.event, 'Event', widget.eventName),
+                    const Divider(height: 20),
+                    _buildInfoRow(
+                      Icons.pets,
+                      'Horse',
+                      '${widget.horseName} (${widget.horseId})',
+                    ),
+                    const Divider(height: 20),
                     _buildInfoRow(
                       Icons.timer,
                       'Time Set',

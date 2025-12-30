@@ -11,8 +11,10 @@ class ActiveRaceScreen extends StatefulWidget {
     required this.maxMinutes,
     required this.maxSeconds,
     required this.riderName,
-    required this.riderNumber,
-    required this.photoPath,
+    required this.eventName,
+    required this.horseName,
+    required this.horseId,
+    required this.additionalDetails,
   });
 
   static const routeName = '/active-race';
@@ -21,8 +23,10 @@ class ActiveRaceScreen extends StatefulWidget {
   final int maxMinutes;
   final int maxSeconds;
   final String riderName;
-  final String riderNumber;
-  final String photoPath;
+  final String eventName;
+  final String horseName;
+  final String horseId;
+  final String additionalDetails;
 
   @override
   State<ActiveRaceScreen> createState() => _ActiveRaceScreenState();
@@ -144,8 +148,10 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
           'elapsedMilliseconds': timeData['milliseconds'],
           'maxSeconds': _maxTimeSeconds,
           'riderName': widget.riderName,
-          'riderNumber': widget.riderNumber,
-          'photoPath': widget.photoPath,
+          'eventName': widget.eventName,
+          'horseName': widget.horseName,
+          'horseId': widget.horseId,
+          'additionalDetails': widget.additionalDetails,
           'isSuccess': isSuccess,
           'raceStatus': isSuccess ? 'completed' : 'timeExceeded',
         },
@@ -251,8 +257,10 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
           'elapsedMilliseconds': 0,
           'maxSeconds': _maxTimeSeconds,
           'riderName': widget.riderName,
-          'riderNumber': widget.riderNumber,
-          'photoPath': widget.photoPath,
+          'eventName': widget.eventName,
+          'horseName': widget.horseName,
+          'horseId': widget.horseId,
+          'additionalDetails': widget.additionalDetails,
           'isSuccess': false,
           'raceStatus': 'timeExceeded',
         },
@@ -350,8 +358,10 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
             'elapsedMilliseconds': 0,
             'maxSeconds': _maxTimeSeconds,
             'riderName': widget.riderName,
-            'riderNumber': widget.riderNumber,
-            'photoPath': widget.photoPath,
+            'eventName': widget.eventName,
+            'horseName': widget.horseName,
+            'horseId': widget.horseId,
+            'additionalDetails': widget.additionalDetails,
             'isSuccess': false, // Stopped race is considered unsuccessful
             'raceStatus': 'stopped', // Add status to identify stopped races
           },
@@ -464,15 +474,14 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.riderName.isNotEmpty ? widget.riderName : 'Rider',
+                              widget.riderName,
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.w600),
                             ),
-                            if (widget.riderNumber.isNotEmpty)
-                              Text(
-                                '#${widget.riderNumber}',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
+                            Text(
+                              '${widget.horseName} • ${widget.eventName}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
                           ],
                         ),
                       ),

@@ -14,8 +14,10 @@ class BluetoothReadyScreen extends StatefulWidget {
     required this.maxMinutes,
     required this.maxSeconds,
     required this.riderName,
-    required this.riderNumber,
-    required this.photoPath,
+    required this.eventName,
+    required this.horseName,
+    required this.horseId,
+    required this.additionalDetails,
   });
 
   static const routeName = '/bluetooth-ready';
@@ -27,8 +29,10 @@ class BluetoothReadyScreen extends StatefulWidget {
   final int maxMinutes;
   final int maxSeconds;
   final String riderName;
-  final String riderNumber;
-  final String photoPath;
+  final String eventName;
+  final String horseName;
+  final String horseId;
+  final String additionalDetails;
 
   @override
   State<BluetoothReadyScreen> createState() => _BluetoothReadyScreenState();
@@ -64,8 +68,10 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
           'maxMinutes': widget.maxMinutes,
           'maxSeconds': widget.maxSeconds,
           'riderName': widget.riderName,
-          'riderNumber': widget.riderNumber,
-          'photoPath': widget.photoPath,
+          'eventName': widget.eventName,
+          'horseName': widget.horseName,
+          'horseId': widget.horseId,
+          'additionalDetails': widget.additionalDetails,
         },
       );
     }
@@ -325,10 +331,12 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    if (widget.riderName.isNotEmpty)
-                      _buildSummaryRow('Rider', widget.riderName),
-                    if (widget.riderNumber.isNotEmpty)
-                      _buildSummaryRow('Number', widget.riderNumber),
+                    _buildSummaryRow('Rider', widget.riderName),
+                    _buildSummaryRow(
+                      'Horse',
+                      '${widget.horseName} (${widget.horseId})',
+                    ),
+                    _buildSummaryRow('Event', widget.eventName),
                     _buildSummaryRow(
                       'Time',
                       _formatTime(

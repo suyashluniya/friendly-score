@@ -103,6 +103,8 @@ class UnifiedRaceDataService {
             // Check if record has the minimum required fields
             return record['id'] != null &&
                 record['timestamp'] != null &&
+                record['rider'] is Map &&
+                record['event'] is Map &&
                 record['performance'] is Map;
           } catch (e) {
             Logger.warning('Skipping malformed record', tag: 'DataService');
@@ -159,8 +161,10 @@ class UnifiedRaceDataService {
   /// Save a new race record to the unified file
   Future<bool> saveRaceData({
     required String riderName,
-    required String riderNumber,
-    required String photoPath,
+    required String eventName,
+    required String horseName,
+    required String horseId,
+    required String additionalDetails,
     required int elapsedSeconds,
     required int maxSeconds,
     required bool isSuccess,
@@ -172,6 +176,20 @@ class UnifiedRaceDataService {
   }) async {
     try {
       // Validate input data
+      if (riderName.trim().isEmpty) {
+        Logger.error(
+          'Validation error: Rider name is required',
+          tag: 'DataService',
+        );
+        return false;
+      }
+      if (eventName.trim().isEmpty) {
+        Logger.error(
+          'Validation error: Event name is required',
+          tag: 'DataService',
+        );
+        return false;
+      }
       if (elapsedSeconds < 0) {
         Logger.error(
           'Validation error: Elapsed seconds cannot be negative',
@@ -185,6 +203,13 @@ class UnifiedRaceDataService {
           tag: 'DataService',
         );
         return false;
+      }
+      if (horseName.trim().isEmpty) {
+        Logger.warning(
+          'Horse name is empty, using default',
+          tag: 'DataService',
+        );
+        horseName = 'Unknown Horse';
       }
 
       // Get services
@@ -205,6 +230,7 @@ class UnifiedRaceDataService {
         'id': _generateUniqueId(),
         'timestamp': DateTime.now().toIso8601String(),
         'event': {
+          'name': eventName,
           'mode': modeService.getModeDisplayName(),
           'modeCode': modeService.getMode() ?? 'UNKNOWN',
           'location': locationData != null
@@ -221,8 +247,8 @@ class UnifiedRaceDataService {
         },
         'rider': {
           'name': riderName,
-          'number': riderNumber,
-          'photoPath': photoPath,
+          'horseName': horseName,
+          'horseId': horseId,
         },
         'performance': {
           'elapsedTime': _formatTime(
@@ -253,6 +279,7 @@ class UnifiedRaceDataService {
           'deviceUsed': 'IR-Timer-Module',
           'connectionAttempts': 1,
         },
+        'additionalDetails': additionalDetails,
         'version': '1.0', // For future data migration compatibility
       };
 

@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:image_picker/image_picker.dart';
 import 'timer_start_screen.dart';
 import '../services/bluetooth_service.dart';
 import '../services/mode_service.dart';
@@ -33,56 +31,19 @@ class RiderDetailsScreen extends StatefulWidget {
 class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _riderNameController = TextEditingController();
-  final _riderNumberController = TextEditingController();
-
-  File? _capturedImage;
-  bool _isPhotoAccepted = false;
-  final ImagePicker _imagePicker = ImagePicker();
+  final _eventNameController = TextEditingController();
+  final _horseNameController = TextEditingController();
+  final _horseIdController = TextEditingController();
+  final _additionalDetailsController = TextEditingController();
 
   @override
   void dispose() {
     _riderNameController.dispose();
-    _riderNumberController.dispose();
+    _eventNameController.dispose();
+    _horseNameController.dispose();
+    _horseIdController.dispose();
+    _additionalDetailsController.dispose();
     super.dispose();
-  }
-
-  Future<void> _capturePhoto() async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        preferredCameraDevice: CameraDevice.rear,
-        imageQuality: 85,
-        maxWidth: 1920,
-        maxHeight: 1080,
-      );
-
-      if (image != null) {
-        setState(() {
-          _capturedImage = File(image.path);
-          _isPhotoAccepted = false;
-        });
-      }
-      // If null, user cancelled - no message needed
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to capture photo: $e'),
-            backgroundColor: const Color(0xFFEF4444),
-          ),
-        );
-      }
-    }
-  }
-
-  void _acceptPhoto() {
-    setState(() {
-      _isPhotoAccepted = true;
-    });
-  }
-
-  void _retakePhoto() {
-    _capturePhoto();
   }
 
   Future<void> _sendDeviceResetSignal() async {
@@ -90,6 +51,9 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
     final btService = BluetoothService();
     final modeService = ModeService();
 
+    // Send reset signal based on current mode
+    // SHOW_JUMPING -> d0,e0
+    // MOUNTED_SPORTS -> d0,e1
     final selectedMode = modeService.getMode();
     print('🔄 RIDER DETAILS: Current mode is: $selectedMode');
     String payload;
@@ -99,7 +63,7 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
     } else if (selectedMode == ModeService.mountedSports) {
       payload = 'd0,e1';
     } else {
-      payload = 'd0,e0';
+      payload = 'd0,e0'; // Default fallback
     }
 
     print('🔄 RIDER DETAILS: About to send payload: $payload');
@@ -117,41 +81,30 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
   }
 
   void _handleSave() async {
-    // Validate photo is captured and accepted
-    if (_capturedImage == null || !_isPhotoAccepted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please capture and accept a photo before continuing'),
-          backgroundColor: Color(0xFFEF4444),
-        ),
-      );
-      return;
-    }
-
-    print('🔄 RIDER DETAILS: About to send device reset signal...');
-    await _sendDeviceResetSignal();
-    print('🔄 RIDER DETAILS: Device reset signal completed');
-
-    if (mounted) {
-      Navigator.of(context).pushNamed(
-        TimerStartScreen.routeName,
-        arguments: {
-          'selectedHours': widget.selectedHours,
-          'selectedMinutes': widget.selectedMinutes,
-          'selectedSeconds': widget.selectedSeconds,
-          'maxHours': widget.maxHours,
-          'maxMinutes': widget.maxMinutes,
-          'maxSeconds': widget.maxSeconds,
-          'riderName': _riderNameController.text.trim(),
-          'riderNumber': _riderNumberController.text.trim(),
-          'photoPath': _capturedImage!.path,
-          // Keep empty values for backwards compatibility
-          'eventName': '',
-          'horseName': '',
-          'horseId': '',
-          'additionalDetails': '',
-        },
-      );
+    if (_formKey.currentState!.validate()) {
+      print('🔄 RIDER DETAILS: About to send device reset signal...');
+      // Send device reset signal for next rider setup
+      await _sendDeviceResetSignal();
+      print('🔄 RIDER DETAILS: Device reset signal completed');
+      
+      if (mounted) {
+        Navigator.of(context).pushNamed(
+          TimerStartScreen.routeName,
+          arguments: {
+            'selectedHours': widget.selectedHours,
+            'selectedMinutes': widget.selectedMinutes,
+            'selectedSeconds': widget.selectedSeconds,
+            'maxHours': widget.maxHours,
+            'maxMinutes': widget.maxMinutes,
+            'maxSeconds': widget.maxSeconds,
+            'riderName': _riderNameController.text,
+            'eventName': _eventNameController.text,
+            'horseName': _horseNameController.text,
+            'horseId': _horseIdController.text,
+            'additionalDetails': _additionalDetailsController.text,
+          },
+        );
+      }
     }
   }
 
@@ -219,34 +172,42 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
                           ),
                         ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2),
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 40),
 
-                        // Photo Capture Section (Mandatory)
-                        _buildPhotoSection()
+                        // Form Fields
+                        _buildInputField(
+                              controller: _riderNameController,
+                              label: 'Rider Name',
+                              icon: Icons.person,
+                              hint: 'Enter rider\'s full name',
+                              isRequired: true,
+                            )
                             .animate()
                             .fadeIn(duration: 600.ms, delay: 200.ms)
-                            .slideY(begin: 0.2),
+                            .slideX(begin: -0.2),
 
-                        const SizedBox(height: 32),
-
-                        // Optional Fields Section
-                        Text(
-                          'Optional Information',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6C757D),
-                          ),
-                        ).animate().fadeIn(duration: 600.ms, delay: 300.ms),
-
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
 
                         _buildInputField(
-                          controller: _riderNameController,
-                          label: 'Rider Name',
-                          icon: Icons.person,
-                          hint: 'Enter rider\'s name (optional)',
-                          isRequired: false,
-                        )
+                              controller: _eventNameController,
+                              label: 'Event Name',
+                              icon: Icons.event,
+                              hint: 'Enter event or competition name',
+                              isRequired: true,
+                            )
+                            .animate()
+                            .fadeIn(duration: 600.ms, delay: 300.ms)
+                            .slideX(begin: 0.2),
+
+                        const SizedBox(height: 20),
+
+                        _buildInputField(
+                              controller: _horseNameController,
+                              label: 'Horse Name',
+                              icon: Icons.pets,
+                              hint: 'Enter horse\'s name',
+                              isRequired: true,
+                            )
                             .animate()
                             .fadeIn(duration: 600.ms, delay: 400.ms)
                             .slideX(begin: -0.2),
@@ -254,16 +215,29 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
                         const SizedBox(height: 20),
 
                         _buildInputField(
-                          controller: _riderNumberController,
-                          label: 'Rider Number',
-                          icon: Icons.numbers,
-                          hint: 'Enter rider\'s number (optional)',
-                          isRequired: false,
-                          keyboardType: TextInputType.text,
-                        )
+                              controller: _horseIdController,
+                              label: 'Horse ID / Registration',
+                              icon: Icons.badge,
+                              hint: 'Enter horse ID or registration number',
+                              isRequired: true,
+                            )
                             .animate()
                             .fadeIn(duration: 600.ms, delay: 500.ms)
                             .slideX(begin: 0.2),
+
+                        const SizedBox(height: 20),
+
+                        _buildInputField(
+                              controller: _additionalDetailsController,
+                              label: 'Additional Details',
+                              icon: Icons.notes,
+                              hint: 'Any additional notes or details',
+                              isRequired: false,
+                              maxLines: 3,
+                            )
+                            .animate()
+                            .fadeIn(duration: 600.ms, delay: 600.ms)
+                            .slideY(begin: 0.2),
                       ],
                     ),
                   ),
@@ -273,234 +247,29 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
 
                 // Save Button
                 SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: (_capturedImage != null && _isPhotoAccepted)
-                        ? _handleSave
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: (_capturedImage != null && _isPhotoAccepted)
-                          ? const Color(0xFF0066FF)
-                          : const Color(0xFFE5E7EB),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Save & Continue',
-                          style: TextStyle(
-                            color: (_capturedImage != null && _isPhotoAccepted)
-                                ? Colors.white
-                                : const Color(0xFF9CA3AF),
-                          ),
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _handleSave,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('Save & Continue'),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.arrow_forward,
+                              size: 20,
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.arrow_forward,
-                          size: 20,
-                          color: (_capturedImage != null && _isPhotoAccepted)
-                              ? Colors.white
-                              : const Color(0xFF9CA3AF),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
+                      ),
+                    )
                     .animate()
-                    .fadeIn(duration: 600.ms, delay: 600.ms)
+                    .fadeIn(duration: 600.ms, delay: 700.ms)
                     .slideY(begin: 0.3),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPhotoSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _isPhotoAccepted
-              ? const Color(0xFF10B981)
-              : const Color(0xFFE5E7EB),
-          width: _isPhotoAccepted ? 2 : 1.5,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.camera_alt,
-                size: 20,
-                color: _isPhotoAccepted
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFF6C757D),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Horse with Rider Photo',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 4),
-              const Text(
-                '*',
-                style: TextStyle(color: Color(0xFFEF4444), fontSize: 16),
-              ),
-              const Spacer(),
-              if (_isPhotoAccepted)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 14,
-                        color: Color(0xFF10B981),
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Accepted',
-                        style: TextStyle(
-                          color: Color(0xFF10B981),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          if (_capturedImage == null) ...[
-            // No photo captured yet - show capture button
-            GestureDetector(
-              onTap: _capturePhoto,
-              child: Container(
-                height: 200,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFFE5E7EB),
-                    width: 2,
-                    style: BorderStyle.solid,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0066FF).withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        size: 40,
-                        color: Color(0xFF0066FF),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Tap to capture photo',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: const Color(0xFF6C757D),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Take a photo of horse with rider',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF9CA3AF),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ] else ...[
-            // Photo captured - show preview with retake/accept buttons
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
-                children: [
-                  Image.file(
-                    _capturedImage!,
-                    height: 250,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                  if (_isPhotoAccepted)
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: const Color(0xFF10B981),
-                            width: 3,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Retake and Accept buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _retakePhoto,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Retake'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF6C757D),
-                      side: const BorderSide(color: Color(0xFFE5E7EB)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isPhotoAccepted ? null : _acceptPhoto,
-                    icon: Icon(
-                      _isPhotoAccepted ? Icons.check_circle : Icons.check,
-                    ),
-                    label: Text(_isPhotoAccepted ? 'Accepted' : 'Accept'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isPhotoAccepted
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFF0066FF),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -512,7 +281,6 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
     required String hint,
     required bool isRequired,
     int maxLines = 1,
-    TextInputType keyboardType = TextInputType.text,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,7 +308,6 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
         TextFormField(
           controller: controller,
           maxLines: maxLines,
-          keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
           ),
