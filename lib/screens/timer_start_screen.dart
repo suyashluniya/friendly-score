@@ -14,10 +14,8 @@ class TimerStartScreen extends StatefulWidget {
     required this.maxMinutes,
     required this.maxSeconds,
     required this.riderName,
-    required this.eventName,
-    required this.horseName,
-    required this.horseId,
-    required this.additionalDetails,
+    required this.riderNumber,
+    required this.photoPath,
   });
 
   static const routeName = '/timer-start';
@@ -29,10 +27,8 @@ class TimerStartScreen extends StatefulWidget {
   final int maxMinutes;
   final int maxSeconds;
   final String riderName;
-  final String eventName;
-  final String horseName;
-  final String horseId;
-  final String additionalDetails;
+  final String riderNumber;
+  final String photoPath;
 
   @override
   State<TimerStartScreen> createState() => _TimerStartScreenState();
@@ -46,7 +42,6 @@ class _TimerStartScreenState extends State<TimerStartScreen>
   late AnimationController _pulseController;
   late AnimationController _glowController;
 
-  // Target Bluetooth device name - customize this as needed
   static const String targetBluetoothDevice = 'ESP32-BT-Client';
 
   @override
@@ -66,34 +61,18 @@ class _TimerStartScreenState extends State<TimerStartScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Check if already connected when screen loads
     _checkExistingConnection();
   }
 
   Future<void> _checkExistingConnection() async {
     final btService = BluetoothService();
 
-    // If already connected, go directly to ready screen
     if (btService.isConnected) {
-      print('✅ Already connected to Bluetooth device');
-      // Navigate to Bluetooth ready screen immediately
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           Navigator.of(context).pushReplacementNamed(
             BluetoothReadyScreen.routeName,
-            arguments: {
-              'selectedHours': widget.selectedHours,
-              'selectedMinutes': widget.selectedMinutes,
-              'selectedSeconds': widget.selectedSeconds,
-              'maxHours': widget.maxHours,
-              'maxMinutes': widget.maxMinutes,
-              'maxSeconds': widget.maxSeconds,
-              'riderName': widget.riderName,
-              'eventName': widget.eventName,
-              'horseName': widget.horseName,
-              'horseId': widget.horseId,
-              'additionalDetails': widget.additionalDetails,
-            },
+            arguments: _buildArgs(),
           );
         }
       });
@@ -107,6 +86,20 @@ class _TimerStartScreenState extends State<TimerStartScreen>
     super.dispose();
   }
 
+  Map<String, dynamic> _buildArgs() {
+    return {
+      'selectedHours': widget.selectedHours,
+      'selectedMinutes': widget.selectedMinutes,
+      'selectedSeconds': widget.selectedSeconds,
+      'maxHours': widget.maxHours,
+      'maxMinutes': widget.maxMinutes,
+      'maxSeconds': widget.maxSeconds,
+      'riderName': widget.riderName,
+      'riderNumber': widget.riderNumber,
+      'photoPath': widget.photoPath,
+    };
+  }
+
   void _onStartPressed() async {
     setState(() {
       _isPressed = true;
@@ -115,33 +108,18 @@ class _TimerStartScreenState extends State<TimerStartScreen>
     _glowController.forward();
 
     try {
-      // Simulate Bluetooth connection check
       await _checkBluetoothConnection();
 
       if (_isConnected) {
-        // Navigate to Bluetooth ready screen
         Navigator.of(context).pushNamed(
           BluetoothReadyScreen.routeName,
-          arguments: {
-            'selectedHours': widget.selectedHours,
-            'selectedMinutes': widget.selectedMinutes,
-            'selectedSeconds': widget.selectedSeconds,
-            'maxHours': widget.maxHours,
-            'maxMinutes': widget.maxMinutes,
-            'maxSeconds': widget.maxSeconds,
-            'riderName': widget.riderName,
-            'eventName': widget.eventName,
-            'horseName': widget.horseName,
-            'horseId': widget.horseId,
-            'additionalDetails': widget.additionalDetails,
-          },
+          arguments: _buildArgs(),
         );
       }
     } catch (e) {
       _showConnectionError(e.toString());
     }
 
-    // Reset after animation
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {
@@ -156,25 +134,19 @@ class _TimerStartScreenState extends State<TimerStartScreen>
   Future<void> _checkBluetoothConnection() async {
     final btService = BluetoothService();
 
-    // Request Bluetooth permissions first (Android 12+)
     bool permissionsGranted = await btService.requestBluetoothPermissions();
     if (!permissionsGranted) {
       throw Exception('Bluetooth permissions are required. Please grant permissions in settings.');
     }
 
-    // Check if Bluetooth is enabled
     bool isEnabled = await btService.isBluetoothEnabled();
     if (!isEnabled) {
-      print('🔴 Bluetooth is disabled, requesting to enable...');
       bool enabled = await btService.requestEnable();
       if (!enabled) {
         throw Exception('Bluetooth is not enabled. Please turn on Bluetooth.');
       }
     }
 
-    print('🔵 Bluetooth is enabled');
-
-    // Find the target device
     var device = await btService.findDeviceByName(targetBluetoothDevice);
     if (device == null) {
       throw Exception(
@@ -182,7 +154,6 @@ class _TimerStartScreenState extends State<TimerStartScreen>
       );
     }
 
-    // Connect to device
     bool connected = await btService.connectToDevice(device);
     if (!connected) {
       throw Exception('Failed to connect to $targetBluetoothDevice');
@@ -192,25 +163,16 @@ class _TimerStartScreenState extends State<TimerStartScreen>
       _isConnected = true;
     });
 
-    // Listen to messages from ESP32
     btService.messageStream.listen((message) {
-      print('🎯 Message from ESP32: $message');
-      // Handle the message here (e.g., start timer, stop timer, etc.)
       _handleArduinoMessage(message);
     });
 
-    // Send a test beacon signal
     await _sendBeaconSignal();
   }
 
   Future<void> _sendBeaconSignal() async {
     final btService = BluetoothService();
     final modeService = ModeService();
-    
-    // Map selected mode to protocol codes:
-    // SHOW_JUMPING -> d0,e0
-    // MOUNTED_SPORTS -> d0,e1
-    // Fallback / unknown -> d0,ff
     final selected = modeService.getMode();
     String payload;
     if (selected == ModeService.showJumping) {
@@ -221,49 +183,22 @@ class _TimerStartScreenState extends State<TimerStartScreen>
       payload = 'd0,ff';
     }
 
-    bool sent = await btService.sendData(payload);
-    if (sent) {
-      print('✅ Mode signal sent successfully to ESP32: $payload (mode=$selected)');
-    } else {
-      print('❌ Failed to send mode signal (mode=$selected, payload=$payload)');
-    }
+    await btService.sendData(payload);
   }
 
   void _handleArduinoMessage(String message) {
-    // Handle different messages from ESP32
-    print('🔔 Processing message: $message');
-
     if (message.contains('START')) {
-      print('▶️ Received START signal from ESP32');
-      // TODO: Start your timer logic here
+      // handled in ready screen
     } else if (message.contains('STOP')) {
-      print('⏹️ Received STOP signal with time data from ESP32: $message');
-      // STOP signal received at timer start screen - log it for debugging
-      // The main STOP handling happens in ActiveRaceScreen
-    } else if (message.contains('ACK')) {
-      print('✅ ESP32 acknowledged connection');
-    } else {
-      print('📬 Custom message: $message');
-      // Handle other custom messages
+      // handled in active race screen
     }
   }
 
   void _showConnectionError(String error) {
-    // Navigate to dedicated error screen instead of just showing snackbar
     Navigator.of(context).pushNamed(
       BluetoothFailedScreen.routeName,
       arguments: {
-        'selectedHours': widget.selectedHours,
-        'selectedMinutes': widget.selectedMinutes,
-        'selectedSeconds': widget.selectedSeconds,
-        'maxHours': widget.maxHours,
-        'maxMinutes': widget.maxMinutes,
-        'maxSeconds': widget.maxSeconds,
-        'riderName': widget.riderName,
-        'eventName': widget.eventName,
-        'horseName': widget.horseName,
-        'horseId': widget.horseId,
-        'additionalDetails': widget.additionalDetails,
+        ..._buildArgs(),
         'errorMessage': error,
       },
     );
@@ -293,16 +228,14 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                 ),
                 child: Column(
                   children: [
-                    _buildInfoRow(Icons.person, 'Rider', widget.riderName),
-                    const Divider(height: 20),
-                    _buildInfoRow(Icons.event, 'Event', widget.eventName),
-                    const Divider(height: 20),
-                    _buildInfoRow(
-                      Icons.pets,
-                      'Horse',
-                      '${widget.horseName} (${widget.horseId})',
-                    ),
-                    const Divider(height: 20),
+                    if (widget.riderName.isNotEmpty) ...[
+                      _buildInfoRow(Icons.person, 'Rider', widget.riderName),
+                      const Divider(height: 20),
+                    ],
+                    if (widget.riderNumber.isNotEmpty) ...[
+                      _buildInfoRow(Icons.numbers, 'Number', widget.riderNumber),
+                      const Divider(height: 20),
+                    ],
                     _buildInfoRow(
                       Icons.timer,
                       'Time Set',
@@ -328,22 +261,20 @@ class _TimerStartScreenState extends State<TimerStartScreen>
 
               const SizedBox(height: 24),
 
-              // Instructions
               Text(
                 _isConnected
                     ? 'Hardware Connected - Verifying...'
                     : _isConnecting
-                    ? 'Connecting to ESP32-BT-Client...'
-                    : 'Press to connect to ESP32 timing system',
+                        ? 'Connecting to ESP32-BT-Client...'
+                        : 'Press to connect to ESP32 timing system',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey.shade700,
-                ),
+                      color: Colors.grey.shade700,
+                    ),
                 textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: 48),
 
-              // Connect Button
               AnimatedBuilder(
                 animation: _pulseController,
                 builder: (context, child) {
@@ -458,7 +389,6 @@ class _TimerStartScreenState extends State<TimerStartScreen>
 
               const SizedBox(height: 32),
 
-              // Status indicator
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -479,13 +409,13 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                       _isConnected
                           ? Icons.check_circle_outline
                           : _isConnecting
-                          ? Icons.sync
-                          : Icons.pending_outlined,
+                              ? Icons.sync
+                              : Icons.pending_outlined,
                       color: _isConnected
                           ? const Color(0xFF10B981)
                           : _isConnecting
-                          ? const Color(0xFF0066FF)
-                          : const Color(0xFFF59E0B),
+                              ? const Color(0xFF0066FF)
+                              : const Color(0xFFF59E0B),
                       size: 20,
                     ),
                     const SizedBox(width: 10),
@@ -493,16 +423,16 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                       _isConnecting
                           ? 'Connecting to Hardware'
                           : _isConnected
-                          ? 'Hardware Connected'
-                          : 'Ready to Connect',
+                              ? 'Hardware Connected'
+                              : 'Ready to Connect',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: _isConnected
-                            ? const Color(0xFF10B981)
-                            : _isConnecting
-                            ? const Color(0xFF0066FF)
-                            : const Color(0xFFF59E0B),
-                        fontWeight: FontWeight.w600,
-                      ),
+                            color: _isConnected
+                                ? const Color(0xFF10B981)
+                                : _isConnecting
+                                    ? const Color(0xFF0066FF)
+                                    : const Color(0xFFF59E0B),
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
                   ],
                 ),
@@ -527,16 +457,16 @@ class _TimerStartScreenState extends State<TimerStartScreen>
           Text(
             '$label:',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey.shade600,
-            ),
+                  color: Colors.grey.shade600,
+                ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+                    fontWeight: FontWeight.w600,
+                  ),
               textAlign: TextAlign.end,
             ),
           ),

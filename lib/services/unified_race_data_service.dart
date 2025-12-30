@@ -161,10 +161,8 @@ class UnifiedRaceDataService {
   /// Save a new race record to the unified file
   Future<bool> saveRaceData({
     required String riderName,
-    required String eventName,
-    required String horseName,
-    required String horseId,
-    required String additionalDetails,
+    required String riderNumber,
+    required String photoPath,
     required int elapsedSeconds,
     required int maxSeconds,
     required bool isSuccess,
@@ -183,13 +181,6 @@ class UnifiedRaceDataService {
         );
         return false;
       }
-      if (eventName.trim().isEmpty) {
-        Logger.error(
-          'Validation error: Event name is required',
-          tag: 'DataService',
-        );
-        return false;
-      }
       if (elapsedSeconds < 0) {
         Logger.error(
           'Validation error: Elapsed seconds cannot be negative',
@@ -203,13 +194,6 @@ class UnifiedRaceDataService {
           tag: 'DataService',
         );
         return false;
-      }
-      if (horseName.trim().isEmpty) {
-        Logger.warning(
-          'Horse name is empty, using default',
-          tag: 'DataService',
-        );
-        horseName = 'Unknown Horse';
       }
 
       // Get services
@@ -230,7 +214,6 @@ class UnifiedRaceDataService {
         'id': _generateUniqueId(),
         'timestamp': DateTime.now().toIso8601String(),
         'event': {
-          'name': eventName,
           'mode': modeService.getModeDisplayName(),
           'modeCode': modeService.getMode() ?? 'UNKNOWN',
           'location': locationData != null
@@ -247,8 +230,8 @@ class UnifiedRaceDataService {
         },
         'rider': {
           'name': riderName,
-          'horseName': horseName,
-          'horseId': horseId,
+          'number': riderNumber,
+          'photoPath': photoPath,
         },
         'performance': {
           'elapsedTime': _formatTime(
@@ -279,7 +262,6 @@ class UnifiedRaceDataService {
           'deviceUsed': 'IR-Timer-Module',
           'connectionAttempts': 1,
         },
-        'additionalDetails': additionalDetails,
         'version': '1.0', // For future data migration compatibility
       };
 

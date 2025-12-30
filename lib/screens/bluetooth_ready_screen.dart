@@ -14,10 +14,8 @@ class BluetoothReadyScreen extends StatefulWidget {
     required this.maxMinutes,
     required this.maxSeconds,
     required this.riderName,
-    required this.eventName,
-    required this.horseName,
-    required this.horseId,
-    required this.additionalDetails,
+    required this.riderNumber,
+    required this.photoPath,
   });
 
   static const routeName = '/bluetooth-ready';
@@ -29,10 +27,8 @@ class BluetoothReadyScreen extends StatefulWidget {
   final int maxMinutes;
   final int maxSeconds;
   final String riderName;
-  final String eventName;
-  final String horseName;
-  final String horseId;
-  final String additionalDetails;
+  final String riderNumber;
+  final String photoPath;
 
   @override
   State<BluetoothReadyScreen> createState() => _BluetoothReadyScreenState();
@@ -50,10 +46,7 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
   void _listenForStartSignal() {
     final btService = BluetoothService();
     _bluetoothSubscription = btService.messageStream.listen((message) {
-      print('📨 Ready screen received: $message');
-
       if (message.contains('START')) {
-        print('🏁 START signal received - Starting race!');
         _startRace();
       }
     });
@@ -68,10 +61,8 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
           'maxMinutes': widget.maxMinutes,
           'maxSeconds': widget.maxSeconds,
           'riderName': widget.riderName,
-          'eventName': widget.eventName,
-          'horseName': widget.horseName,
-          'horseId': widget.horseId,
-          'additionalDetails': widget.additionalDetails,
+          'riderNumber': widget.riderNumber,
+          'photoPath': widget.photoPath,
         },
       );
     }
@@ -116,60 +107,50 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
   Future<void> _disarmDevice() async {
     final btService = BluetoothService();
 
-    // Send disarm command to device
     bool sent = await btService.sendData('d1,e0');
-    if (sent) {
-      print('✅ Disarm signal sent successfully to ESP32: d1,e0');
-
-      // Show confirmation that device was disarmed
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(child: Text('Device has been manually disarmed')),
-              ],
-            ),
-            backgroundColor: Colors.green.shade600,
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+    if (sent && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(child: Text('Device has been manually disarmed')),
+            ],
           ),
-        );
-
-        // Navigate to homepage (mode selection) after a short delay
-        await Future.delayed(const Duration(milliseconds: 500));
-        if (mounted) {
-          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-        }
-      }
-    } else {
-      print('❌ Failed to send disarm signal');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text('Failed to disarm device. Please try again.'),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+          backgroundColor: Colors.green.shade600,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        );
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text('Failed to disarm device. Please try again.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     }
   }
 
@@ -190,7 +171,6 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
             children: [
               const SizedBox(height: 40),
 
-              // Success Animation
               Container(
                     width: 120,
                     height: 120,
@@ -210,13 +190,12 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
 
               const SizedBox(height: 40),
 
-              // Main Status Message
               Text(
                     'Application Armed!',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF10B981),
-                    ),
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF10B981),
+                        ),
                     textAlign: TextAlign.center,
                   )
                   .animate()
@@ -225,7 +204,6 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
 
               const SizedBox(height: 20),
 
-              // Detailed Status
               Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -238,20 +216,6 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                     ),
                     child: Column(
                       children: [
-                        Text(
-                          'The application is armed with the hardware and the rider can now start the race',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w500,
-                                height: 1.5,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Connection Status
                         Row(
                           children: [
                             Container(
@@ -310,7 +274,6 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
 
               const SizedBox(height: 40),
 
-              // Rider Info Summary
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -326,17 +289,15 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                     Text(
                       'Race Setup Summary',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0066FF),
-                      ),
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0066FF),
+                          ),
                     ),
                     const SizedBox(height: 12),
-                    _buildSummaryRow('Rider', widget.riderName),
-                    _buildSummaryRow(
-                      'Horse',
-                      '${widget.horseName} (${widget.horseId})',
-                    ),
-                    _buildSummaryRow('Event', widget.eventName),
+                    if (widget.riderName.isNotEmpty)
+                      _buildSummaryRow('Rider', widget.riderName),
+                    if (widget.riderNumber.isNotEmpty)
+                      _buildSummaryRow('Number', widget.riderNumber),
                     _buildSummaryRow(
                       'Time',
                       _formatTime(
@@ -351,7 +312,6 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
 
               const SizedBox(height: 32),
 
-              // Ready Indicator
               Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,
@@ -384,7 +344,6 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
 
               const SizedBox(height: 32),
 
-              // Manual Disarm Button
               GestureDetector(
                 onTap: _showDisarmConfirmation,
                 child: Container(
@@ -409,9 +368,9 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                       Text(
                         'DISARM DEVICE',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: Colors.red,
-                          letterSpacing: 1,
-                        ),
+                              color: Colors.red,
+                              letterSpacing: 1,
+                            ),
                       ),
                     ],
                   ),

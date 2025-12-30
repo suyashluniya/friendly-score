@@ -49,18 +49,6 @@ class ModeSelectionScreen extends StatelessWidget {
                       children: [
                         Flexible(
                           child: _ModeButton(
-                            label: 'Show Jumping',
-                            description: 'Time trials and competition modes',
-                            icon: FontAwesomeIcons.paperPlane,
-                            heroTag: 'mode-jumping',
-                            route: '/jumping',
-                            color: const Color(0xFF0066FF),
-                            mode: ModeService.showJumping,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Flexible(
-                          child: _ModeButton(
                             label: 'Mounted Sports',
                             description: 'Equestrian and mounted events',
                             icon: FontAwesomeIcons.hourglassHalf,
@@ -68,6 +56,18 @@ class ModeSelectionScreen extends StatelessWidget {
                             route: '/jumping',
                             color: const Color(0xFF10B981),
                             mode: ModeService.mountedSports,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Flexible(
+                          child: _ModeButton(
+                            label: 'Show Jumping',
+                            description: 'Time trials and competition modes',
+                            icon: FontAwesomeIcons.paperPlane,
+                            heroTag: 'mode-jumping',
+                            route: '/jumping',
+                            color: const Color(0xFF0066FF),
+                            mode: ModeService.showJumping,
                           ),
                         ),
                         const SizedBox(height: 24),

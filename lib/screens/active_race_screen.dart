@@ -11,10 +11,8 @@ class ActiveRaceScreen extends StatefulWidget {
     required this.maxMinutes,
     required this.maxSeconds,
     required this.riderName,
-    required this.eventName,
-    required this.horseName,
-    required this.horseId,
-    required this.additionalDetails,
+    required this.riderNumber,
+    required this.photoPath,
   });
 
   static const routeName = '/active-race';
@@ -23,10 +21,8 @@ class ActiveRaceScreen extends StatefulWidget {
   final int maxMinutes;
   final int maxSeconds;
   final String riderName;
-  final String eventName;
-  final String horseName;
-  final String horseId;
-  final String additionalDetails;
+  final String riderNumber;
+  final String photoPath;
 
   @override
   State<ActiveRaceScreen> createState() => _ActiveRaceScreenState();
@@ -148,10 +144,8 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
           'elapsedMilliseconds': timeData['milliseconds'],
           'maxSeconds': _maxTimeSeconds,
           'riderName': widget.riderName,
-          'eventName': widget.eventName,
-          'horseName': widget.horseName,
-          'horseId': widget.horseId,
-          'additionalDetails': widget.additionalDetails,
+          'riderNumber': widget.riderNumber,
+          'photoPath': widget.photoPath,
           'isSuccess': isSuccess,
           'raceStatus': isSuccess ? 'completed' : 'timeExceeded',
         },
@@ -257,10 +251,8 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
           'elapsedMilliseconds': 0,
           'maxSeconds': _maxTimeSeconds,
           'riderName': widget.riderName,
-          'eventName': widget.eventName,
-          'horseName': widget.horseName,
-          'horseId': widget.horseId,
-          'additionalDetails': widget.additionalDetails,
+          'riderNumber': widget.riderNumber,
+          'photoPath': widget.photoPath,
           'isSuccess': false,
           'raceStatus': 'timeExceeded',
         },
@@ -358,10 +350,8 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
             'elapsedMilliseconds': 0,
             'maxSeconds': _maxTimeSeconds,
             'riderName': widget.riderName,
-            'eventName': widget.eventName,
-            'horseName': widget.horseName,
-            'horseId': widget.horseId,
-            'additionalDetails': widget.additionalDetails,
+            'riderNumber': widget.riderNumber,
+            'photoPath': widget.photoPath,
             'isSuccess': false, // Stopped race is considered unsuccessful
             'raceStatus': 'stopped', // Add status to identify stopped races
           },
@@ -450,7 +440,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                // Rider Info
+                                // Rider Info
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -475,19 +465,23 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                           children: [
                             Text(
                               widget.riderName,
-                              style: Theme.of(context).textTheme.titleMedium
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
                                   ?.copyWith(fontWeight: FontWeight.w600),
                             ),
-                            Text(
-                              '${widget.horseName} • ${widget.eventName}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
+                            if (widget.riderNumber.isNotEmpty)
+                              Text(
+                                '#${widget.riderNumber}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
                           ],
                         ),
                       ),
                     ],
                   ),
                 ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
+
 
                 const Spacer(),
 

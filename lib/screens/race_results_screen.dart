@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:demo/services/location_service.dart';
 import 'package:demo/services/mode_service.dart';
 import 'package:flutter/material.dart';
@@ -14,10 +15,8 @@ class RaceResultsScreen extends StatefulWidget {
     this.elapsedMilliseconds = 0,
     required this.maxSeconds,
     required this.riderName,
-    required this.eventName,
-    required this.horseName,
-    required this.horseId,
-    required this.additionalDetails,
+    required this.riderNumber,
+    required this.photoPath,
     required this.isSuccess,
     this.raceStatus,
   });
@@ -31,10 +30,8 @@ class RaceResultsScreen extends StatefulWidget {
   final int elapsedMilliseconds;
   final int maxSeconds;
   final String riderName;
-  final String eventName;
-  final String horseName;
-  final String horseId;
-  final String additionalDetails;
+  final String riderNumber;
+  final String photoPath;
   final bool isSuccess;
   final String? raceStatus;
 
@@ -50,11 +47,11 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
 
   Color _getResultColor() {
     if (_isStoppedRace) {
-      return const Color(0xFFEF4444); // Red for stopped
+      return const Color(0xFFEF4444);
     } else if (widget.isSuccess) {
-      return const Color(0xFF10B981); // Green for success
+      return const Color(0xFF10B981);
     } else {
-      return const Color(0xFFF59E0B); // Orange for time exceeded
+      return const Color(0xFFF59E0B);
     }
   }
 
@@ -88,10 +85,8 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
 
       final success = await dataService.saveRaceData(
         riderName: widget.riderName,
-        eventName: widget.eventName,
-        horseName: widget.horseName,
-        horseId: widget.horseId,
-        additionalDetails: widget.additionalDetails,
+        riderNumber: widget.riderNumber,
+        photoPath: widget.photoPath,
         elapsedSeconds: widget.elapsedSeconds,
         maxSeconds: widget.maxSeconds,
         isSuccess: widget.isSuccess,
@@ -151,7 +146,6 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
         }
       }
     } catch (e) {
-      print('Error saving race data: $e');
       if (mounted) {
         setState(() {
           _isSaving = false;
@@ -196,8 +190,6 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
           child: Column(
             children: [
               const SizedBox(height: 16),
-
-              // Success/Failure/Stopped Icon
               Container(
                 width: 80,
                 height: 80,
@@ -212,22 +204,28 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                   size: 48,
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // Result Title
               Text(
                 _getResultTitle(),
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: _getResultColor(),
-                ),
+                      fontWeight: FontWeight.bold,
+                      color: _getResultColor(),
+                    ),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 24),
-
-              // Time Card
+              if (widget.photoPath.isNotEmpty && File(widget.photoPath).existsSync()) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.file(
+                    File(widget.photoPath),
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
@@ -241,22 +239,20 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                     Text(
                       'Time Taken',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.2,
-                      ),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.2,
+                          ),
                     ),
                     const SizedBox(height: 12),
                     Column(
                       children: [
                         Text(
                           _formatTimeWithMilliseconds(),
-                          style: Theme.of(context).textTheme.displayLarge
-                              ?.copyWith(
+                          style: Theme.of(context).textTheme.displayLarge?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize:
-                                    42, // Slightly smaller to fit milliseconds
+                                fontSize: 42,
                                 shadows: [
                                   Shadow(
                                     color: Colors.black.withOpacity(0.2),
@@ -267,7 +263,6 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                               ),
                         ),
                         const SizedBox(height: 8),
-                        // Time labels
                         _buildTimeLabels(),
                       ],
                     ),
@@ -275,17 +270,14 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                     Text(
                       'Max: ${_formatTime(widget.maxSeconds)}',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                        fontWeight: FontWeight.w500,
-                      ),
+                            color: Colors.white.withOpacity(0.9),
+                            fontWeight: FontWeight.w500,
+                          ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // Rider Details Card
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -310,36 +302,31 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                         const SizedBox(width: 12),
                         Text(
                           'Race Details',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    _buildDetailRow(
-                      context,
-                      Icons.person,
-                      'Rider',
-                      widget.riderName,
-                      Colors.blue.shade600,
-                    ),
-                    const Divider(height: 20),
-                    _buildDetailRow(
-                      context,
-                      Icons.pets,
-                      'Horse',
-                      '${widget.horseName} (${widget.horseId})',
-                      Colors.brown.shade600,
-                    ),
-                    const Divider(height: 20),
-                    _buildDetailRow(
-                      context,
-                      Icons.event,
-                      'Event',
-                      widget.eventName,
-                      Colors.purple.shade600,
-                    ),
-                    const Divider(height: 20),
+                    if (widget.riderName.isNotEmpty) ...[
+                      _buildDetailRow(
+                        context,
+                        Icons.person,
+                        'Rider',
+                        widget.riderName,
+                        Colors.blue.shade600,
+                      ),
+                      const Divider(height: 20),
+                    ],
+                    if (widget.riderNumber.isNotEmpty) ...[
+                      _buildDetailRow(
+                        context,
+                        Icons.numbers,
+                        'Number',
+                        widget.riderNumber,
+                        Colors.indigo.shade600,
+                      ),
+                      const Divider(height: 20),
+                    ],
                     FutureBuilder<Map<String, dynamic>?>(
                       future: LocationService().loadLocation(),
                       builder: (context, snapshot) {
@@ -363,7 +350,6 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                         return const SizedBox.shrink();
                       },
                     ),
-                    const Divider(height: 20),
                     _buildDetailRow(
                       context,
                       Icons.sports,
@@ -371,69 +357,48 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                       ModeService().getModeDisplayName(),
                       Colors.orange.shade600,
                     ),
-                    if (widget.additionalDetails.isNotEmpty) ...[
-                      const Divider(height: 20),
-                      _buildDetailRow(
-                        context,
-                        Icons.info_outline,
-                        'Notes',
-                        widget.additionalDetails,
-                        Colors.grey.shade600,
-                      ),
-                    ],
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // Action Buttons
               Row(
                 children: [
                   Expanded(
-                    child: Tooltip(
-                      message: _isSaved
-                          ? 'Race data has already been saved to prevent duplicates'
-                          : 'Save this race data to the unified database',
-                      child: ElevatedButton.icon(
-                        onPressed: (_isSaving || _isSaved)
-                            ? null
-                            : _saveRaceData,
-                        icon: _isSaving
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
+                    child: ElevatedButton.icon(
+                      onPressed: (_isSaving || _isSaved) ? null : _saveRaceData,
+                      icon: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
                                 ),
-                              )
+                              ),
+                            )
+                          : _isSaved
+                              ? const Icon(Icons.check_circle_outline)
+                              : const Icon(Icons.save_outlined),
+                      label: Text(
+                        _isSaving
+                            ? 'SAVING...'
                             : _isSaved
-                            ? const Icon(Icons.check_circle_outline)
-                            : const Icon(Icons.save_outlined),
-                        label: Text(
-                          _isSaving
-                              ? 'SAVING...'
-                              : _isSaved
-                              ? 'SAVED'
-                              : 'SAVE',
-                        ),
-                        style: _isSaved
-                            ? ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green.shade600,
-                                foregroundColor: Colors.white,
-                              )
-                            : null,
+                                ? 'SAVED'
+                                : 'SAVE',
                       ),
+                      style: _isSaved
+                          ? ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green.shade600,
+                              foregroundColor: Colors.white,
+                            )
+                          : null,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        // Calculate original selected time from maxSeconds (maxSeconds = selectedSeconds * 2)
                         int totalMaxSeconds = widget.maxSeconds;
                         int selectedTotalSeconds = totalMaxSeconds ~/ 2;
 
@@ -446,7 +411,6 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                         int nextMaxMinutes = (totalMaxSeconds % 3600) ~/ 60;
                         int nextMaxSeconds = totalMaxSeconds % 60;
 
-                        // Navigate to rider details for next rider
                         Navigator.of(context).pushNamed(
                           RiderDetailsScreen.routeName,
                           arguments: {
@@ -465,7 +429,6 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 20),
             ],
           ),
@@ -503,17 +466,17 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.black87,
-                  fontWeight: FontWeight.w600,
-                ),
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
             ],
           ),
@@ -535,30 +498,25 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   }
 
   String _formatTimeWithMilliseconds() {
-    // Use the detailed time data if available, otherwise fall back to parsing elapsedSeconds
     if (widget.elapsedHours > 0 ||
         widget.elapsedMinutes > 0 ||
         widget.elapsedSecondsOnly > 0 ||
         widget.elapsedMilliseconds > 0) {
-      // Always take only the first 2 digits of milliseconds, regardless of length
       final millisStr = widget.elapsedMilliseconds.toString();
       final millis = millisStr.length >= 2
           ? millisStr.substring(0, 2)
           : millisStr.padLeft(2, '0');
 
-      // Don't show hours if they are 00
       if (widget.elapsedHours > 0) {
         return '${widget.elapsedHours.toString().padLeft(2, '0')}:${widget.elapsedMinutes.toString().padLeft(2, '0')}:${widget.elapsedSecondsOnly.toString().padLeft(2, '0')}:$millis';
       } else {
         return '${widget.elapsedMinutes.toString().padLeft(2, '0')}:${widget.elapsedSecondsOnly.toString().padLeft(2, '0')}:$millis';
       }
     } else {
-      // Fallback for backward compatibility
       int hours = widget.elapsedSeconds ~/ 3600;
       int minutes = (widget.elapsedSeconds % 3600) ~/ 60;
       int secs = widget.elapsedSeconds % 60;
 
-      // Don't show hours if they are 0
       if (hours > 0) {
         return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}:00';
       } else {
@@ -568,7 +526,6 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   }
 
   Widget _buildTimeLabels() {
-    // Determine which time format is being used
     bool hasHours = widget.elapsedHours > 0;
     bool hasDetailedTime = widget.elapsedHours > 0 ||
         widget.elapsedMinutes > 0 ||
@@ -576,7 +533,6 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
         widget.elapsedMilliseconds > 0;
 
     if (!hasDetailedTime) {
-      // Fallback format calculation
       hasHours = (widget.elapsedSeconds ~/ 3600) > 0;
     }
 
@@ -615,7 +571,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
         ':',
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: Colors.transparent, // Hidden separator for spacing
+          color: Colors.transparent,
           fontSize: 12,
         ),
       ),

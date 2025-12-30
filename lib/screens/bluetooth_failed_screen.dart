@@ -11,10 +11,8 @@ class BluetoothFailedScreen extends StatelessWidget {
     required this.maxMinutes,
     required this.maxSeconds,
     required this.riderName,
-    required this.eventName,
-    required this.horseName,
-    required this.horseId,
-    required this.additionalDetails,
+    required this.riderNumber,
+    required this.photoPath,
     required this.errorMessage,
   });
 
@@ -27,10 +25,8 @@ class BluetoothFailedScreen extends StatelessWidget {
   final int maxMinutes;
   final int maxSeconds;
   final String riderName;
-  final String eventName;
-  final String horseName;
-  final String horseId;
-  final String additionalDetails;
+  final String riderNumber;
+  final String photoPath;
   final String errorMessage;
 
   @override
@@ -49,13 +45,11 @@ class BluetoothFailedScreen extends StatelessWidget {
                   MediaQuery.of(context).padding.top -
                   MediaQuery.of(context).padding.bottom -
                   kToolbarHeight -
-                  48, // Account for padding
+                  48,
             ),
             child: Column(
               children: [
                 const SizedBox(height: 40),
-
-                // Error Animation
                 Container(
                       width: 120,
                       height: 120,
@@ -72,14 +66,10 @@ class BluetoothFailedScreen extends StatelessWidget {
                     .animate()
                     .scale(duration: 800.ms, curve: Curves.elasticOut)
                     .fadeIn(duration: 600.ms),
-
                 const SizedBox(height: 40),
-
-                // Error Title
                 Text(
                       'Hardware Connection Failed',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFFEF4444),
                           ),
@@ -88,116 +78,67 @@ class BluetoothFailedScreen extends StatelessWidget {
                     .animate()
                     .fadeIn(duration: 600.ms, delay: 200.ms)
                     .slideY(begin: 0.2),
-
                 const SizedBox(height: 20),
-
-                // Error Details Card
-                Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: const Color(0xFFE5E7EB),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Unable to connect to ESP32-BT-Client',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: Colors.black87,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                Text(
+                      errorMessage,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.black87,
+                            height: 1.5,
                           ),
-
-                          const SizedBox(height: 12),
-
-                          // Troubleshooting Steps
-                          Text(
-                            'Troubleshooting Steps:',
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          _buildTroubleshootingStep(
-                            context,
-                            '1.',
-                            'Ensure ESP32-BT-Client is powered on',
-                            Icons.power_settings_new,
-                          ),
-
-                          _buildTroubleshootingStep(
-                            context,
-                            '2.',
-                            'Check that Bluetooth is enabled on your device',
-                            Icons.bluetooth,
-                          ),
-
-                          _buildTroubleshootingStep(
-                            context,
-                            '3.',
-                            'Make sure the timer module is within range (10m)',
-                            Icons.radar,
-                          ),
-
-                          _buildTroubleshootingStep(
-                            context,
-                            '4.',
-                            'Verify the device is not connected to another phone',
-                            Icons.smartphone,
-                          ),
-                        ],
-                      ),
+                      textAlign: TextAlign.center,
                     )
                     .animate()
-                    .fadeIn(duration: 600.ms, delay: 400.ms)
+                    .fadeIn(duration: 600.ms, delay: 300.ms)
+                    .slideY(begin: 0.2),
+                const SizedBox(height: 30),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFE5E7EB),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Details',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (riderName.isNotEmpty)
+                        _buildRow(context, 'Rider', riderName),
+                      if (riderNumber.isNotEmpty)
+                        _buildRow(context, 'Number', riderNumber),
+                      _buildRow(
+                        context,
+                        'Time Set',
+                        _formatTime(selectedHours, selectedMinutes, selectedSeconds),
+                      ),
+                      _buildRow(
+                        context,
+                        'Max Time',
+                        _formatTime(maxHours, maxMinutes, maxSeconds),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(duration: 600.ms, delay: 400.ms),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Back'),
+                  ),
+                )
+                    .animate()
+                    .fadeIn(duration: 600.ms, delay: 500.ms)
                     .slideY(begin: 0.3),
-
-                const SizedBox(height: 40),
-
-                // Action Buttons
-                Column(
-                  children: [
-                    // Retry Button
-                    SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () => _retryConnection(context),
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Retry Connection'),
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(duration: 600.ms, delay: 600.ms)
-                        .slideY(begin: 0.3),
-
-                    const SizedBox(height: 12),
-
-                    // Settings Button
-                    SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _openBluetoothSettings(context),
-                            icon: const Icon(Icons.settings_outlined),
-                            label: const Text('Open Bluetooth Settings'),
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(duration: 600.ms, delay: 700.ms)
-                        .slideY(begin: 0.3),
-                  ],
-                ),
-
-                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -206,44 +147,25 @@ class BluetoothFailedScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTroubleshootingStep(
-    BuildContext context,
-    String number,
-    String instruction,
-    IconData icon,
-  ) {
+  Widget _buildRow(BuildContext context, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: const Color(0xFF0066FF).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Center(
-              child: Text(
-                number,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF0066FF),
+          Text(
+            '$label:',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade700,
                 ),
-              ),
-            ),
           ),
-          const SizedBox(width: 12),
-          Icon(icon, size: 20, color: const Color(0xFF6C757D)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              instruction,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey.shade700,
-                height: 1.4,
-              ),
+              value,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+              textAlign: TextAlign.end,
             ),
           ),
         ],
@@ -251,20 +173,13 @@ class BluetoothFailedScreen extends StatelessWidget {
     );
   }
 
-  void _retryConnection(BuildContext context) {
-    // Navigate back to timer start screen to retry connection
-    Navigator.of(context).pop();
-  }
-
-  void _openBluetoothSettings(BuildContext context) {
-    // In a real app, this would open device Bluetooth settings
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'This would open device Bluetooth settings in a real app',
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  String _formatTime(int hours, int minutes, int seconds) {
+    if (hours > 0) {
+      return '${hours}h ${minutes}m ${seconds}s';
+    } else if (minutes > 0) {
+      return '${minutes}m ${seconds}s';
+    } else {
+      return '${seconds}s';
+    }
   }
 }
