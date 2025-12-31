@@ -120,19 +120,23 @@ class JumpingScreen extends StatelessWidget {
             description: 'Simple race from start to finish',
             icon: FontAwesomeIcons.flagCheckered,
             color: const Color(0xFF10B981),
-            onTap: () => Navigator.pushNamed(
-              context,
-              RiderDetailsScreen.routeName,
-              arguments: {
-                'selectedHours': 0,
-                'selectedMinutes': 0,
-                'selectedSeconds': 0,
-                'maxHours': 0,
-                'maxMinutes': 0,
-                'maxSeconds': 0,
-                'raceType': 'startFinish',
-              },
-            ),
+            onTap: () {
+              // Set race type in ModeService
+              ModeService().setRaceType(ModeService.startFinish);
+              Navigator.pushNamed(
+                context,
+                RiderDetailsScreen.routeName,
+                arguments: {
+                  'selectedHours': 0,
+                  'selectedMinutes': 0,
+                  'selectedSeconds': 0,
+                  'maxHours': 0,
+                  'maxMinutes': 0,
+                  'maxSeconds': 0,
+                  'raceType': 'startFinish',
+                },
+              );
+            },
           ),
         ),
         const SizedBox(height: 24),
@@ -142,19 +146,23 @@ class JumpingScreen extends StatelessWidget {
             description: 'Race with verification checkpoint',
             icon: FontAwesomeIcons.listCheck,
             color: const Color(0xFF8B5CF6),
-            onTap: () => Navigator.pushNamed(
-              context,
-              RiderDetailsScreen.routeName,
-              arguments: {
-                'selectedHours': 0,
-                'selectedMinutes': 0,
-                'selectedSeconds': 0,
-                'maxHours': 0,
-                'maxMinutes': 0,
-                'maxSeconds': 0,
-                'raceType': 'startVerifyFinish',
-              },
-            ),
+            onTap: () {
+              // Set race type in ModeService
+              ModeService().setRaceType(ModeService.startVerifyFinish);
+              Navigator.pushNamed(
+                context,
+                RiderDetailsScreen.routeName,
+                arguments: {
+                  'selectedHours': 0,
+                  'selectedMinutes': 0,
+                  'selectedSeconds': 0,
+                  'maxHours': 0,
+                  'maxMinutes': 0,
+                  'maxSeconds': 0,
+                  'raceType': 'startVerifyFinish',
+                },
+              );
+            },
           ),
         ),
       ],

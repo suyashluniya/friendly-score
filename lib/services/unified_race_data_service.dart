@@ -188,9 +188,10 @@ class UnifiedRaceDataService {
         );
         return false;
       }
-      if (maxSeconds <= 0) {
+      // Note: maxSeconds can be 0 for Mounted Sports mode (no time limit)
+      if (maxSeconds < 0) {
         Logger.error(
-          'Validation error: Max seconds must be greater than zero',
+          'Validation error: Max seconds cannot be negative',
           tag: 'DataService',
         );
         return false;

@@ -198,7 +198,9 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
       await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) {
-        final isSuccess = currentTime <= _maxTimeSeconds;
+        // For Mounted Sports (no max time), race is always successful when finished
+        // For Show Jumping, check if time is within limit
+        final isSuccess = _isMountedSports || currentTime <= _maxTimeSeconds;
         Navigator.of(context).pushReplacementNamed(
           RaceResultsScreen.routeName,
           arguments: {
@@ -386,8 +388,10 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
       );
     }
 
-    // Determine if race was successful by comparing elapsed time with max time
-    final isSuccess = timeData['totalSeconds']! <= _maxTimeSeconds;
+    // Determine if race was successful
+    // For Mounted Sports (no max time), race is always successful when finished
+    // For Show Jumping, check if time is within limit
+    final isSuccess = _isMountedSports || timeData['totalSeconds']! <= _maxTimeSeconds;
 
     print(
       '🏁 Race result: ${isSuccess ? "COMPLETED" : "TIME EXCEEDED"} - Elapsed: ${timeData['totalSeconds']}s, Max: ${_maxTimeSeconds}s',
@@ -408,7 +412,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
           'riderNumber': widget.riderNumber,
           'photoPath': widget.photoPath,
           'isSuccess': isSuccess,
-          'raceStatus': isSuccess ? 'completed' : 'timeExceeded',
+          'raceStatus': isSuccess ? 'finished' : 'timeExceeded',
         },
       );
     }

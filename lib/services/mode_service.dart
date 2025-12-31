@@ -10,15 +10,20 @@ class ModeService {
 
   String? _selectedMode;
   String? _jumpingMode; // 'topScore' or 'normal' for Show Jumping
+  String? _raceType; // 'startFinish' or 'startVerifyFinish' for Mounted Sports
   static const String _modeKey = 'selected_mode';
 
   // Mode constants
   static const String showJumping = 'SHOW_JUMPING';
   static const String mountedSports = 'MOUNTED_SPORTS';
 
-  // Jumping mode constants
+  // Jumping mode constants (Show Jumping)
   static const String topScore = 'topScore';
   static const String normal = 'normal';
+
+  // Race type constants (Mounted Sports)
+  static const String startFinish = 'startFinish';
+  static const String startVerifyFinish = 'startVerifyFinish';
 
   // Load the persisted mode on initialization
   Future<void> _loadMode() async {
@@ -118,5 +123,26 @@ class ModeService {
   // Check if jumping mode is Normal
   bool isNormalMode() {
     return _jumpingMode == normal;
+  }
+
+  // Set the race type (startFinish or startVerifyFinish) for Mounted Sports
+  void setRaceType(String raceType) {
+    _raceType = raceType;
+    Logger.info('Race type set: $raceType', tag: 'ModeService');
+  }
+
+  // Get the race type
+  String? getRaceType() {
+    return _raceType;
+  }
+
+  // Check if race type is Start → Finish
+  bool isStartFinishMode() {
+    return _raceType == startFinish;
+  }
+
+  // Check if race type is Start → Verify → Finish
+  bool isStartVerifyFinishMode() {
+    return _raceType == startVerifyFinish;
   }
 }

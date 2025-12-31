@@ -6,6 +6,7 @@ import 'mode_selection_screen.dart';
 import 'jumping_screen.dart';
 import 'top_score_screen.dart';
 import 'normal_jumping_screen.dart';
+import 'rider_details_screen.dart';
 import '../services/unified_race_data_service.dart';
 
 class RaceResultsScreen extends StatefulWidget {
@@ -61,34 +62,49 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Unsaved Data'),
-          content: const Text(
-            'Race data has not been saved. What would you like to do?',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Race data has not been saved. What would you like to do?',
+              ),
+              const SizedBox(height: 24),
+              // Save button (primary action)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () => Navigator.of(context).pop('save'),
+                child: const Text('Save'),
+              ),
+              const SizedBox(height: 12),
+              // Continue without saving button
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.orange,
+                  side: const BorderSide(color: Colors.orange),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () => Navigator.of(context).pop('continue'),
+                child: const Text('Continue Without Saving'),
+              ),
+              const SizedBox(height: 12),
+              // Cancel button
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () => Navigator.of(context).pop(null),
+                child: const Text('Cancel'),
+              ),
+            ],
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(null),
-              child: const Text('Cancel'),
-            ),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange,
-                side: const BorderSide(color: Colors.orange),
-              ),
-              onPressed: () => Navigator.of(context).pop('continue'),
-              child: const Text('Continue Without Saving'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => Navigator.of(context).pop('save'),
-              child: const Text('Save'),
-            ),
-          ],
         );
       },
     );
@@ -352,14 +368,17 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                         _buildTimeLabels(),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Max: ${_formatTime(widget.maxSeconds)}',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.white.withOpacity(0.9),
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
+                    // Only show max time for Show Jumping mode (when maxSeconds > 0)
+                    if (widget.maxSeconds > 0) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Max: ${_formatTime(widget.maxSeconds)}',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Colors.white.withOpacity(0.9),
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -486,21 +505,39 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         _handleNavigationWithSaveCheck(() {
-                          // Navigate with proper back button stack:
-                          // Mode Selection → Jumping Screen → Time Picker
+                          final currentMode = ModeService().getMode();
+
+                          // Navigate with proper back button stack
                           Navigator.of(context).pushNamedAndRemoveUntil(
                             ModeSelectionScreen.routeName,
                             (route) => false,
                           );
                           Navigator.of(context).pushNamed(JumpingScreen.routeName);
 
-                          // Go to correct Time Picker based on jumping mode
-                          final jumpingMode = ModeService().getJumpingMode();
-                          if (jumpingMode == ModeService.normal) {
-                            Navigator.of(context).pushNamed(NormalJumpingScreen.routeName);
+                          if (currentMode == ModeService.mountedSports) {
+                            // Mounted Sports: Go to Rider Details with correct race type
+                            final raceType = ModeService().getRaceType() ?? ModeService.startFinish;
+                            Navigator.of(context).pushNamed(
+                              RiderDetailsScreen.routeName,
+                              arguments: {
+                                'selectedHours': 0,
+                                'selectedMinutes': 0,
+                                'selectedSeconds': 0,
+                                'maxHours': 0,
+                                'maxMinutes': 0,
+                                'maxSeconds': 0,
+                                'raceType': raceType,
+                              },
+                            );
                           } else {
-                            // Default to Top Score
-                            Navigator.of(context).pushNamed(TopScoreJumpingScreen.routeName);
+                            // Show Jumping: Go to correct Time Picker based on jumping mode
+                            final jumpingMode = ModeService().getJumpingMode();
+                            if (jumpingMode == ModeService.normal) {
+                              Navigator.of(context).pushNamed(NormalJumpingScreen.routeName);
+                            } else {
+                              // Default to Top Score
+                              Navigator.of(context).pushNamed(TopScoreJumpingScreen.routeName);
+                            }
                           }
                         });
                       },
