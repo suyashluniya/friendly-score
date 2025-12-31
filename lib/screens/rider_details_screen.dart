@@ -304,18 +304,20 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
                     : const Color(0xFF6C757D),
               ),
               const SizedBox(width: 8),
-              Text(
-                'Horse with Rider Photo',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+              Expanded(
+                child: Text(
+                  'Horse with Rider Photo',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               const SizedBox(width: 4),
               const Text(
                 '*',
                 style: TextStyle(color: Color(0xFFEF4444), fontSize: 16),
               ),
-              const Spacer(),
               if (_isPhotoAccepted)
                 Container(
                   padding:
