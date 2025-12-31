@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../main.dart';
+import '../services/mode_service.dart';
 import 'rider_details_screen.dart';
 
 /// Custom scroll physics for ultra-smooth wheel scrolling
@@ -295,6 +296,9 @@ class _TopScoreJumpingScreenState extends State<TopScoreJumpingScreen> {
         false;
 
     if (!confirmed || !mounted) return;
+
+    // Set jumping mode to Top Score
+    ModeService().setJumpingMode(ModeService.topScore);
 
     Navigator.of(context).pushNamed(
       RiderDetailsScreen.routeName,

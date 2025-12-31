@@ -9,11 +9,16 @@ class ModeService {
   }
 
   String? _selectedMode;
+  String? _jumpingMode; // 'topScore' or 'normal' for Show Jumping
   static const String _modeKey = 'selected_mode';
 
   // Mode constants
   static const String showJumping = 'SHOW_JUMPING';
   static const String mountedSports = 'MOUNTED_SPORTS';
+
+  // Jumping mode constants
+  static const String topScore = 'topScore';
+  static const String normal = 'normal';
 
   // Load the persisted mode on initialization
   Future<void> _loadMode() async {
@@ -92,5 +97,26 @@ class ModeService {
   // Check if mode is selected
   bool hasMode() {
     return _selectedMode != null;
+  }
+
+  // Set the jumping mode (topScore or normal)
+  void setJumpingMode(String jumpingMode) {
+    _jumpingMode = jumpingMode;
+    Logger.info('Jumping mode set: $jumpingMode', tag: 'ModeService');
+  }
+
+  // Get the jumping mode
+  String? getJumpingMode() {
+    return _jumpingMode;
+  }
+
+  // Check if jumping mode is Top Score
+  bool isTopScoreMode() {
+    return _jumpingMode == topScore;
+  }
+
+  // Check if jumping mode is Normal
+  bool isNormalMode() {
+    return _jumpingMode == normal;
   }
 }

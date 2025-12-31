@@ -3,6 +3,9 @@ import 'package:demo/services/location_service.dart';
 import 'package:demo/services/mode_service.dart';
 import 'package:flutter/material.dart';
 import 'mode_selection_screen.dart';
+import 'jumping_screen.dart';
+import 'top_score_screen.dart';
+import 'normal_jumping_screen.dart';
 import '../services/unified_race_data_service.dart';
 
 class RaceResultsScreen extends StatefulWidget {
@@ -46,6 +49,72 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   bool get _isStoppedRace => widget.raceStatus == 'stopped';
   bool get _isDisqualifiedRace => widget.raceStatus == 'disqualified';
   bool get _isFinishedRace => widget.raceStatus == 'finished';
+
+  /// Shows confirmation dialog when navigating away without saving
+  /// Returns: 'save' to save and continue, 'continue' to continue without saving, null to cancel
+  Future<String?> _showUnsavedDataDialog() async {
+    if (_isSaved) return 'continue'; // Already saved, allow navigation
+
+    final String? result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Unsaved Data'),
+          content: const Text(
+            'Race data has not been saved. What would you like to do?',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('Cancel'),
+            ),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange,
+                side: const BorderSide(color: Colors.orange),
+              ),
+              onPressed: () => Navigator.of(context).pop('continue'),
+              child: const Text('Continue Without Saving'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(context).pop('save'),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result;
+  }
+
+  /// Handles navigation with unsaved data check
+  Future<void> _handleNavigationWithSaveCheck(VoidCallback onNavigate) async {
+    final result = await _showUnsavedDataDialog();
+
+    if (result == null) return; // User cancelled
+
+    if (result == 'save') {
+      // Save data first, then navigate
+      await _saveRaceData();
+      if (mounted && _isSaved) {
+        onNavigate();
+      }
+    } else if (result == 'continue') {
+      // Continue without saving
+      if (mounted) {
+        onNavigate();
+      }
+    }
+  }
 
   Color _getResultColor() {
     if (_isStoppedRace || _isDisqualifiedRace) {
@@ -180,21 +249,32 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Race Results'),
-        leading: IconButton(
-          icon: const Icon(Icons.home_outlined),
-          onPressed: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
+    return WillPopScope(
+      onWillPop: () async {
+        final result = await _showUnsavedDataDialog();
+        if (result == 'save') {
+          await _saveRaceData();
+          return _isSaved;
+        }
+        return result == 'continue';
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Race Results'),
+          leading: IconButton(
+            icon: const Icon(Icons.home_outlined),
+            onPressed: () {
+              _handleNavigationWithSaveCheck(() {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              });
+            },
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
               const SizedBox(height: 16),
               Container(
                 width: 80,
@@ -405,10 +485,24 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                          ModeSelectionScreen.routeName,
-                          (route) => false,
-                        );
+                        _handleNavigationWithSaveCheck(() {
+                          // Navigate with proper back button stack:
+                          // Mode Selection → Jumping Screen → Time Picker
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            ModeSelectionScreen.routeName,
+                            (route) => false,
+                          );
+                          Navigator.of(context).pushNamed(JumpingScreen.routeName);
+
+                          // Go to correct Time Picker based on jumping mode
+                          final jumpingMode = ModeService().getJumpingMode();
+                          if (jumpingMode == ModeService.normal) {
+                            Navigator.of(context).pushNamed(NormalJumpingScreen.routeName);
+                          } else {
+                            // Default to Top Score
+                            Navigator.of(context).pushNamed(TopScoreJumpingScreen.routeName);
+                          }
+                        });
                       },
                       icon: const Icon(Icons.sports_outlined),
                       label: const Text('NEXT'),
@@ -416,8 +510,9 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),

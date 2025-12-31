@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../main.dart';
+import '../services/mode_service.dart';
 import 'rider_details_screen.dart';
 
 /// Custom scroll physics for ultra-smooth wheel scrolling
@@ -271,6 +272,9 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
         false;
 
     if (!confirmed || !mounted) return;
+
+    // Set jumping mode to Normal
+    ModeService().setJumpingMode(ModeService.normal);
 
     Navigator.of(context).pushNamed(
       RiderDetailsScreen.routeName,
