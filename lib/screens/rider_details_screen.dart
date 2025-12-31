@@ -15,6 +15,7 @@ class RiderDetailsScreen extends StatefulWidget {
     required this.maxHours,
     required this.maxMinutes,
     required this.maxSeconds,
+    this.raceType,
   });
 
   static const routeName = '/rider-details';
@@ -25,6 +26,7 @@ class RiderDetailsScreen extends StatefulWidget {
   final int maxHours;
   final int maxMinutes;
   final int maxSeconds;
+  final String? raceType; // 'startFinish' or 'startVerifyFinish' for Mounted Sports, null for Show Jumping
 
   @override
   State<RiderDetailsScreen> createState() => _RiderDetailsScreenState();
@@ -141,11 +143,14 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
             'riderName': riderName,
             'riderNumber': riderNumber,
             'photoPath': _capturedImage!.path,
+            'raceType': widget.raceType,
           },
         );
       }
     }
   }
+
+  bool get _isMountedSports => widget.raceType != null;
 
   @override
   Widget build(BuildContext context) {
@@ -165,8 +170,14 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildTimeSummary(),
-                        const SizedBox(height: 24),
+                        if (!_isMountedSports) ...[
+                          _buildTimeSummary(),
+                          const SizedBox(height: 24),
+                        ],
+                        if (_isMountedSports) ...[
+                          _buildRaceTypeInfo(),
+                          const SizedBox(height: 24),
+                        ],
                         _buildPhotoSection()
                             .animate()
                             .fadeIn(duration: 400.ms)
@@ -269,6 +280,58 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
                 Text(
                   'Max: ${_formatTime(widget.maxHours, widget.maxMinutes, widget.maxSeconds)}',
                   style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRaceTypeInfo() {
+    final isVerifyMode = widget.raceType == 'startVerifyFinish';
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isVerifyMode ? const Color(0xFF8B5CF6) : const Color(0xFF10B981),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isVerifyMode ? Icons.checklist_rounded : Icons.flag_rounded,
+            color: isVerifyMode ? const Color(0xFF8B5CF6) : const Color(0xFF10B981),
+            size: 24,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isVerifyMode ? 'Start → Verify → Finish' : 'Start → Finish',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  isVerifyMode
+                      ? 'Race with verification checkpoint'
+                      : 'Simple race from start to finish',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Timer starts from 0:00:00',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF6C757D),
+                      ),
                 ),
               ],
             ),

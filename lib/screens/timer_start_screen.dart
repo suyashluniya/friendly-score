@@ -16,6 +16,7 @@ class TimerStartScreen extends StatefulWidget {
     required this.riderName,
     required this.riderNumber,
     required this.photoPath,
+    this.raceType,
   });
 
   static const routeName = '/timer-start';
@@ -29,6 +30,7 @@ class TimerStartScreen extends StatefulWidget {
   final String riderName;
   final String riderNumber;
   final String photoPath;
+  final String? raceType; // 'startFinish' or 'startVerifyFinish' for Mounted Sports
 
   @override
   State<TimerStartScreen> createState() => _TimerStartScreenState();
@@ -97,8 +99,11 @@ class _TimerStartScreenState extends State<TimerStartScreen>
       'riderName': widget.riderName,
       'riderNumber': widget.riderNumber,
       'photoPath': widget.photoPath,
+      'raceType': widget.raceType,
     };
   }
+
+  bool get _isMountedSports => widget.raceType != null;
 
   void _onStartPressed() async {
     setState(() {
@@ -236,25 +241,41 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                       _buildInfoRow(Icons.numbers, 'Number', widget.riderNumber),
                       const Divider(height: 20),
                     ],
-                    _buildInfoRow(
-                      Icons.timer,
-                      'Time Set',
-                      _formatTime(
-                        widget.selectedHours,
-                        widget.selectedMinutes,
-                        widget.selectedSeconds,
+                    if (_isMountedSports) ...[
+                      _buildInfoRow(
+                        Icons.flag_rounded,
+                        'Race Type',
+                        widget.raceType == 'startVerifyFinish'
+                            ? 'Start → Verify → Finish'
+                            : 'Start → Finish',
                       ),
-                    ),
-                    const Divider(height: 20),
-                    _buildInfoRow(
-                      Icons.schedule,
-                      'Max Time',
-                      _formatTime(
-                        widget.maxHours,
-                        widget.maxMinutes,
-                        widget.maxSeconds,
+                      const Divider(height: 20),
+                      _buildInfoRow(
+                        Icons.timer,
+                        'Timer',
+                        'Starts from 0:00:00',
                       ),
-                    ),
+                    ] else ...[
+                      _buildInfoRow(
+                        Icons.timer,
+                        'Time Set',
+                        _formatTime(
+                          widget.selectedHours,
+                          widget.selectedMinutes,
+                          widget.selectedSeconds,
+                        ),
+                      ),
+                      const Divider(height: 20),
+                      _buildInfoRow(
+                        Icons.schedule,
+                        'Max Time',
+                        _formatTime(
+                          widget.maxHours,
+                          widget.maxMinutes,
+                          widget.maxSeconds,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

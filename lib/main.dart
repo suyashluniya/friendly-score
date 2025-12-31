@@ -354,15 +354,16 @@ class MyApp extends StatelessWidget {
             ),
           );
         } else if (settings.name == RiderDetailsScreen.routeName) {
-          final args = settings.arguments as Map<String, int>;
+          final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
             builder: (_) => RiderDetailsScreen(
-              selectedHours: args['selectedHours']!,
-              selectedMinutes: args['selectedMinutes']!,
-              selectedSeconds: args['selectedSeconds']!,
-              maxHours: args['maxHours']!,
-              maxMinutes: args['maxMinutes']!,
-              maxSeconds: args['maxSeconds']!,
+              selectedHours: args['selectedHours'] as int,
+              selectedMinutes: args['selectedMinutes'] as int,
+              selectedSeconds: args['selectedSeconds'] as int,
+              maxHours: args['maxHours'] as int,
+              maxMinutes: args['maxMinutes'] as int,
+              maxSeconds: args['maxSeconds'] as int,
+              raceType: args['raceType'] as String?,
             ),
           );
         } else if (settings.name == TimerStartScreen.routeName) {
@@ -378,6 +379,7 @@ class MyApp extends StatelessWidget {
               riderName: args['riderName'] as String,
               riderNumber: args['riderNumber'] as String? ?? '',
               photoPath: args['photoPath'] as String? ?? '',
+              raceType: args['raceType'] as String?,
             ),
           );
         } else if (settings.name == BluetoothReadyScreen.routeName) {
@@ -393,6 +395,7 @@ class MyApp extends StatelessWidget {
               riderName: args['riderName'] as String,
               riderNumber: args['riderNumber'] as String? ?? '',
               photoPath: args['photoPath'] as String? ?? '',
+              raceType: args['raceType'] as String?,
             ),
           );
         } else if (settings.name == BluetoothFailedScreen.routeName) {
@@ -421,6 +424,7 @@ class MyApp extends StatelessWidget {
               riderName: args['riderName'] as String,
               riderNumber: args['riderNumber'] as String? ?? '',
               photoPath: args['photoPath'] as String? ?? '',
+              raceType: args['raceType'] as String?,
             ),
           );
         } else if (settings.name == RaceResultsScreen.routeName) {

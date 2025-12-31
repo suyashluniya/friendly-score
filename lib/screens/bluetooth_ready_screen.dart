@@ -16,6 +16,7 @@ class BluetoothReadyScreen extends StatefulWidget {
     required this.riderName,
     required this.riderNumber,
     required this.photoPath,
+    this.raceType,
   });
 
   static const routeName = '/bluetooth-ready';
@@ -29,6 +30,7 @@ class BluetoothReadyScreen extends StatefulWidget {
   final String riderName;
   final String riderNumber;
   final String photoPath;
+  final String? raceType; // 'startFinish' or 'startVerifyFinish' for Mounted Sports
 
   @override
   State<BluetoothReadyScreen> createState() => _BluetoothReadyScreenState();
@@ -63,10 +65,13 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
           'riderName': widget.riderName,
           'riderNumber': widget.riderNumber,
           'photoPath': widget.photoPath,
+          'raceType': widget.raceType,
         },
       );
     }
   }
+
+  bool get _isMountedSports => widget.raceType != null;
 
   Future<void> _showDisarmConfirmation() async {
     final bool? shouldDisarm = await showDialog<bool>(
@@ -298,14 +303,23 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                       _buildSummaryRow('Rider', widget.riderName),
                     if (widget.riderNumber.isNotEmpty)
                       _buildSummaryRow('Number', widget.riderNumber),
-                    _buildSummaryRow(
-                      'Time',
-                      _formatTime(
-                        widget.selectedHours,
-                        widget.selectedMinutes,
-                        widget.selectedSeconds,
+                    if (_isMountedSports) ...[
+                      _buildSummaryRow(
+                        'Race Type',
+                        widget.raceType == 'startVerifyFinish'
+                            ? 'Start → Verify → Finish'
+                            : 'Start → Finish',
                       ),
-                    ),
+                      _buildSummaryRow('Timer', 'Starts from 0:00:00'),
+                    ] else
+                      _buildSummaryRow(
+                        'Time',
+                        _formatTime(
+                          widget.selectedHours,
+                          widget.selectedMinutes,
+                          widget.selectedSeconds,
+                        ),
+                      ),
                   ],
                 ),
               ).animate().fadeIn(duration: 600.ms, delay: 600.ms),

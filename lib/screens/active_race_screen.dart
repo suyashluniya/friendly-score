@@ -13,6 +13,7 @@ class ActiveRaceScreen extends StatefulWidget {
     required this.riderName,
     required this.riderNumber,
     required this.photoPath,
+    this.raceType,
   });
 
   static const routeName = '/active-race';
@@ -23,6 +24,7 @@ class ActiveRaceScreen extends StatefulWidget {
   final String riderName;
   final String riderNumber;
   final String photoPath;
+  final String? raceType; // 'startFinish' or 'startVerifyFinish' for Mounted Sports
 
   @override
   State<ActiveRaceScreen> createState() => _ActiveRaceScreenState();
@@ -39,16 +41,23 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   StreamSubscription? _bluetoothSubscription;
   bool _isPaused = false;
 
+  bool get _isMountedSports => widget.raceType != null;
+
   @override
   void initState() {
     super.initState();
 
-    // The widget receives the MAXIMUM time (already doubled)
-    _maxTimeSeconds =
-        (widget.maxHours * 3600) + (widget.maxMinutes * 60) + widget.maxSeconds;
-
-    // Time allowed is half of the maximum time
-    _timeAllowedSeconds = _maxTimeSeconds ~/ 2;
+    if (_isMountedSports) {
+      // For Mounted Sports: No max time limit, timer counts from 0 indefinitely
+      _maxTimeSeconds = 0; // No limit
+      _timeAllowedSeconds = 0;
+    } else {
+      // For Show Jumping: Use the provided max time
+      _maxTimeSeconds =
+          (widget.maxHours * 3600) + (widget.maxMinutes * 60) + widget.maxSeconds;
+      // Time allowed is half of the maximum time
+      _timeAllowedSeconds = _maxTimeSeconds ~/ 2;
+    }
 
     _elapsedSeconds = 0;
     _startTime = DateTime.now();
@@ -65,9 +74,15 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     // Listen for STOP message from ESP32
     _listenForStopSignal();
 
-    print(
-      '🏁 Race started! Time allowed: ${_formatTime(_timeAllowedSeconds)}, Max time: ${_formatTime(_maxTimeSeconds)}',
-    );
+    if (_isMountedSports) {
+      print(
+        '🏁 Mounted Sports Race started! Race type: ${widget.raceType}',
+      );
+    } else {
+      print(
+        '🏁 Race started! Time allowed: ${_formatTime(_timeAllowedSeconds)}, Max time: ${_formatTime(_maxTimeSeconds)}',
+      );
+    }
   }
 
   void _startTimer() {
@@ -76,8 +91,8 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
         setState(() {
           _elapsedSeconds++;
 
-          // Check if maximum time exceeded
-          if (_elapsedSeconds >= _maxTimeSeconds) {
+          // Check if maximum time exceeded (only for Show Jumping mode)
+          if (!_isMountedSports && _maxTimeSeconds > 0 && _elapsedSeconds >= _maxTimeSeconds) {
             _handleTimeExpired();
           }
         });
@@ -646,12 +661,24 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   }
 
   double get _progress {
+    // For Mounted Sports: no progress bar (always 0)
+    if (_isMountedSports) {
+      return 0;
+    }
     // Progress goes from 0 to 1 based on MAX time
     // This way the circle fills completely at max time (14 sec), not at allowed time (7 sec)
+    if (_maxTimeSeconds == 0) return 0;
     return _elapsedSeconds / _maxTimeSeconds;
   }
 
   Color get _timerColor {
+    // For Mounted Sports: always green (no time limit)
+    if (_isMountedSports) {
+      return Colors.green;
+    }
+
+    if (_timeAllowedSeconds == 0) return Colors.green;
+
     if (_elapsedSeconds >= _timeAllowedSeconds) {
       // Over the allowed time - show RED
       return Colors.red;
@@ -672,6 +699,283 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     }
   }
 
+  // Mounted Sports: Only Finish and Disqualify buttons
+  Widget _buildMountedSportsButtons() {
+    return Row(
+      children: [
+        // Finish Race Button
+        Expanded(
+          child: GestureDetector(
+            onTap: _showFinishRaceConfirmation,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF10B981), Color(0xFF047857)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF10B981).withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.flag_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'FINISH',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        // Disqualify Button
+        Expanded(
+          child: GestureDetector(
+            onTap: _showDisqualifyConfirmation,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFEF4444).withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.block_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'DISQUALIFY',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Show Jumping: Pause, Finish, and Disqualify buttons
+  Widget _buildShowJumpingButtons() {
+    return Row(
+      children: [
+        // Pause/Resume Button
+        Expanded(
+          child: GestureDetector(
+            onTap: _togglePause,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: _isPaused
+                      ? [const Color(0xFF10B981), const Color(0xFF059669)]
+                      : [const Color(0xFFF59E0B), const Color(0xFFD97706)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: (_isPaused ? const Color(0xFF10B981) : const Color(0xFFF59E0B))
+                        .withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _isPaused ? 'RESUME' : 'PAUSE',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Finish Race Button
+        Expanded(
+          child: GestureDetector(
+            onTap: _showFinishRaceConfirmation,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF10B981), Color(0xFF047857)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF10B981).withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.flag_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'FINISH',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Disqualify Button
+        Expanded(
+          child: GestureDetector(
+            onTap: _showDisqualifyConfirmation,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFEF4444).withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.block_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'DISQUALIFY',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -679,7 +983,11 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: const Text('Race In Progress'),
+          title: Text(_isMountedSports
+              ? (widget.raceType == 'startVerifyFinish'
+                  ? 'Start → Verify → Finish'
+                  : 'Start → Finish')
+              : 'Race In Progress'),
         ),
         body: SafeArea(
           child: Padding(
@@ -861,7 +1169,9 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                         ),
                       const SizedBox(width: 12),
                       Text(
-                        _isPaused ? 'RACE PAUSED' : 'WAITING FOR FINISH',
+                        _isPaused
+                            ? 'RACE PAUSED'
+                            : (_isMountedSports ? 'RACE IN PROGRESS' : 'WAITING FOR FINISH'),
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: Colors.white,
                           letterSpacing: 1,
@@ -876,168 +1186,9 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                 // Race Control Buttons - Modern Design
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      // Pause/Resume Button
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _togglePause,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: _isPaused
-                                    ? [const Color(0xFF10B981), const Color(0xFF059669)]
-                                    : [const Color(0xFFF59E0B), const Color(0xFFD97706)],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: (_isPaused ? const Color(0xFF10B981) : const Color(0xFFF59E0B))
-                                      .withOpacity(0.4),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                                    color: Colors.white,
-                                    size: 28,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _isPaused ? 'RESUME' : 'PAUSE',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Finish Race Button
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _showFinishRaceConfirmation,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [Color(0xFF10B981), Color(0xFF047857)],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF10B981).withOpacity(0.4),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.flag_rounded,
-                                    color: Colors.white,
-                                    size: 28,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'FINISH',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Disqualify Button
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _showDisqualifyConfirmation,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFEF4444).withOpacity(0.4),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.block_rounded,
-                                    color: Colors.white,
-                                    size: 28,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'DISQUALIFY',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: _isMountedSports
+                      ? _buildMountedSportsButtons()
+                      : _buildShowJumpingButtons(),
                 ).animate().fadeIn(duration: 600.ms, delay: 600.ms).slideY(begin: 0.2),
 
                 const SizedBox(height: 24),

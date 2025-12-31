@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'top_score_screen.dart';
 import 'normal_jumping_screen.dart';
+import 'rider_details_screen.dart';
 import '../services/mode_service.dart';
 
 class JumpingScreen extends StatelessWidget {
@@ -15,10 +16,17 @@ class JumpingScreen extends StatelessWidget {
     final currentMode = modeService.getMode();
 
     String appBarTitle;
+    String titleText;
+    String subtitleText;
+
     if (currentMode == ModeService.mountedSports) {
       appBarTitle = 'Mounted Sports';
+      titleText = 'Choose Race Type';
+      subtitleText = 'Select the race type for your event';
     } else {
-      appBarTitle = 'Show Jumping'; // Default fallback
+      appBarTitle = 'Show Jumping';
+      titleText = 'Choose Your Mode';
+      subtitleText = 'Select the jumping mode for your event';
     }
 
     return Scaffold(
@@ -33,7 +41,7 @@ class JumpingScreen extends StatelessWidget {
               Column(
                 children: [
                   Text(
-                    'Choose Your Mode',
+                    titleText,
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.5,
@@ -42,7 +50,7 @@ class JumpingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Select the jumping mode for your event',
+                    subtitleText,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: const Color(0xFF6C757D),
                     ),
@@ -55,36 +63,9 @@ class JumpingScreen extends StatelessWidget {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 600),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Flexible(
-                          child: _JumpOptionButton(
-                            label: 'Top Score',
-                            description: 'Competitive mode with time limits',
-                            icon: FontAwesomeIcons.trophy,
-                            color: const Color(0xFFF59E0B),
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              TopScoreJumpingScreen.routeName,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Flexible(
-                          child: _JumpOptionButton(
-                            label: 'Normal',
-                            description: 'Practice mode for training sessions',
-                            icon: FontAwesomeIcons.personRunning,
-                            color: const Color(0xFF0066FF),
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              NormalJumpingScreen.routeName,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: currentMode == ModeService.mountedSports
+                        ? _buildMountedSportsButtons(context)
+                        : _buildShowJumpingButtons(context),
                   ),
                 ),
               ),
@@ -93,6 +74,90 @@ class JumpingScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildShowJumpingButtons(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Flexible(
+          child: _JumpOptionButton(
+            label: 'Top Score',
+            description: 'Competitive mode with time limits',
+            icon: FontAwesomeIcons.trophy,
+            color: const Color(0xFFF59E0B),
+            onTap: () => Navigator.pushNamed(
+              context,
+              TopScoreJumpingScreen.routeName,
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Flexible(
+          child: _JumpOptionButton(
+            label: 'Normal',
+            description: 'Practice mode for training sessions',
+            icon: FontAwesomeIcons.personRunning,
+            color: const Color(0xFF0066FF),
+            onTap: () => Navigator.pushNamed(
+              context,
+              NormalJumpingScreen.routeName,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMountedSportsButtons(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Flexible(
+          child: _JumpOptionButton(
+            label: 'Start → Finish',
+            description: 'Simple race from start to finish',
+            icon: FontAwesomeIcons.flagCheckered,
+            color: const Color(0xFF10B981),
+            onTap: () => Navigator.pushNamed(
+              context,
+              RiderDetailsScreen.routeName,
+              arguments: {
+                'selectedHours': 0,
+                'selectedMinutes': 0,
+                'selectedSeconds': 0,
+                'maxHours': 0,
+                'maxMinutes': 0,
+                'maxSeconds': 0,
+                'raceType': 'startFinish',
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Flexible(
+          child: _JumpOptionButton(
+            label: 'Start → Verify → Finish',
+            description: 'Race with verification checkpoint',
+            icon: FontAwesomeIcons.listCheck,
+            color: const Color(0xFF8B5CF6),
+            onTap: () => Navigator.pushNamed(
+              context,
+              RiderDetailsScreen.routeName,
+              arguments: {
+                'selectedHours': 0,
+                'selectedMinutes': 0,
+                'selectedSeconds': 0,
+                'maxHours': 0,
+                'maxMinutes': 0,
+                'maxSeconds': 0,
+                'raceType': 'startVerifyFinish',
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
