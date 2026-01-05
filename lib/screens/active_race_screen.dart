@@ -42,6 +42,8 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   late AnimationController _pulseController;
   StreamSubscription? _bluetoothSubscription;
   bool _isPaused = false;
+  bool _isTopScoreMode = false;
+  bool _isInCountdownPhase = false; // Track if Top Score is in countdown phase
 
   bool get _isMountedSports => widget.raceType != null;
 
@@ -49,16 +51,24 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   void initState() {
     super.initState();
 
+    // Detect if this is Top Score mode
+    final modeService = ModeService();
+    _isTopScoreMode = !_isMountedSports && modeService.isTopScoreMode();
+
     if (_isMountedSports) {
       // For Mounted Sports: No max time limit, timer counts from 0 indefinitely
       _maxTimeSeconds = 0; // No limit
       _timeAllowedSeconds = 0;
+      _isInCountdownPhase = false;
     } else {
       // For Show Jumping: Use the provided max time
       _maxTimeSeconds =
           (widget.maxHours * 3600) + (widget.maxMinutes * 60) + widget.maxSeconds;
       // Time allowed is half of the maximum time
       _timeAllowedSeconds = _maxTimeSeconds ~/ 2;
+      
+      // Top Score mode starts with countdown from time allowed
+      _isInCountdownPhase = _isTopScoreMode;
     }
 
     _elapsedSeconds = 0;
@@ -93,9 +103,22 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
         setState(() {
           _elapsedSeconds++;
 
-          // Check if maximum time exceeded (only for Show Jumping mode)
-          if (!_isMountedSports && _maxTimeSeconds > 0 && _elapsedSeconds >= _maxTimeSeconds) {
-            _handleTimeExpired();
+          // Top Score Mode: Switch from countdown to count-up phase
+          if (_isTopScoreMode && _isInCountdownPhase && _elapsedSeconds >= _timeAllowedSeconds) {
+            _isInCountdownPhase = false;
+            _elapsedSeconds = 0; // Reset for count-up phase
+            print('🔄 Top Score: Switching from countdown to count-up phase');
+          }
+
+          // Check if maximum time exceeded (for all Show Jumping modes)
+          if (!_isMountedSports && _maxTimeSeconds > 0) {
+            int totalElapsed = _isTopScoreMode && !_isInCountdownPhase 
+                ? _timeAllowedSeconds + _elapsedSeconds
+                : _elapsedSeconds;
+            
+            if (totalElapsed >= _maxTimeSeconds) {
+              _handleTimeExpired();
+            }
           }
         });
       }
@@ -694,9 +717,17 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   }
 
   String _formatTime(int seconds) {
-    int hours = seconds ~/ 3600;
-    int minutes = (seconds % 3600) ~/ 60;
-    int secs = seconds % 60;
+    int displaySeconds = seconds;
+    
+    // Top Score Mode: Show countdown in Phase 1
+    if (_isTopScoreMode && _isInCountdownPhase) {
+      displaySeconds = _timeAllowedSeconds - seconds;
+      if (displaySeconds < 0) displaySeconds = 0;
+    }
+    
+    int hours = displaySeconds ~/ 3600;
+    int minutes = (displaySeconds % 3600) ~/ 60;
+    int secs = displaySeconds % 60;
 
     if (hours > 0) {
       return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
@@ -706,41 +737,53 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   }
 
   double get _progress {
-    // For Mounted Sports: no progress bar (always 0)
-    if (_isMountedSports) {
-      return 0;
-    }
-    // Progress goes from 0 to 1 based on MAX time
-    // This way the circle fills completely at max time (14 sec), not at allowed time (7 sec)
-    if (_maxTimeSeconds == 0) return 0;
-    return _elapsedSeconds / _maxTimeSeconds;
+    // No progress ring - using pulsing effect only
+    return 0;
   }
 
   Color get _timerColor {
     // For Mounted Sports: always green (no time limit)
     if (_isMountedSports) {
-      return Colors.green;
+      return const Color(0xFF10B981); // Green
     }
 
-    if (_timeAllowedSeconds == 0) return Colors.green;
+    if (_timeAllowedSeconds == 0) return const Color(0xFF10B981);
 
-    if (_elapsedSeconds >= _timeAllowedSeconds) {
-      // Over the allowed time - show RED
-      return Colors.red;
+    // Top Score Mode
+    if (_isTopScoreMode) {
+      if (_isInCountdownPhase) {
+        // Phase 1: Countdown (time_allowed → 0) - GREEN
+        return const Color(0xFF10B981);
+      } else {
+        // Phase 2: Count-up (0 → time_allowed) - ORANGE → RED
+        double progress = _elapsedSeconds / _timeAllowedSeconds;
+        return Color.lerp(
+          const Color(0xFFF59E0B), // Orange
+          const Color(0xFFEF4444), // Red
+          progress,
+        )!;
+      }
     }
 
-    // Calculate progress relative to allowed time for color changes
-    double allowedProgress = _elapsedSeconds / _timeAllowedSeconds;
-
-    if (allowedProgress < 0.5) {
-      // Less than 50% of allowed time used - GREEN
-      return Colors.green;
-    } else if (allowedProgress < 0.75) {
-      // 50-75% of allowed time used - still GREEN
-      return Colors.green;
+    // Normal Mode: Gradual GREEN → ORANGE → RED
+    if (_elapsedSeconds <= _timeAllowedSeconds) {
+      // Phase 1: 0 → time_allowed - GREEN → ORANGE
+      double progress = _elapsedSeconds / _timeAllowedSeconds;
+      return Color.lerp(
+        const Color(0xFF10B981), // Green
+        const Color(0xFFF59E0B), // Orange
+        progress,
+      )!;
     } else {
-      // 75-100% of allowed time used - ORANGE (warning)
-      return Colors.orange;
+      // Phase 2: time_allowed → max_time - ORANGE → RED
+      int remainingTime = _maxTimeSeconds - _timeAllowedSeconds;
+      int timeInPhase2 = _elapsedSeconds - _timeAllowedSeconds;
+      double progress = remainingTime > 0 ? timeInPhase2 / remainingTime : 1.0;
+      return Color.lerp(
+        const Color(0xFFF59E0B), // Orange
+        const Color(0xFFEF4444), // Red
+        progress,
+      )!;
     }
   }
 
