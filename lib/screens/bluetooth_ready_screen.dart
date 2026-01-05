@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/bluetooth_service.dart';
+import '../services/mode_service.dart';
+import '../utils/command_protocol.dart';
 import 'active_race_screen.dart';
 
 class BluetoothReadyScreen extends StatefulWidget {
@@ -47,9 +49,19 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
 
   void _listenForStartSignal() {
     final btService = BluetoothService();
+    final modeService = ModeService();
+    final expectedEventCode = modeService.getEventCode();
+    
     _bluetoothSubscription = btService.messageStream.listen((message) {
-      if (message.contains('START')) {
+      // Validate command format and check if it's a START command
+      if (CommandProtocol.isValidIncomingCommand(message) &&
+          CommandProtocol.isStartCommand(message) &&
+          CommandProtocol.matchesEventCode(message, expectedEventCode)) {
+        print('✅ Valid START command received: $message');
         _startRace();
+      } else if (message.toLowerCase().contains('start')) {
+        // Log invalid format but don't act on it
+        print('⚠️ Invalid START message format received: $message');
       }
     });
   }

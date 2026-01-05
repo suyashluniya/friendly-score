@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'timer_start_screen.dart';
 import '../services/bluetooth_service.dart';
 import '../services/mode_service.dart';
+import '../utils/command_protocol.dart';
 
 class RiderDetailsScreen extends StatefulWidget {
   const RiderDetailsScreen({
@@ -89,18 +90,11 @@ class _RiderDetailsScreenState extends State<RiderDetailsScreen> {
   Future<void> _sendDeviceResetSignal() async {
     final btService = BluetoothService();
     final modeService = ModeService();
-    final selectedMode = modeService.getMode();
-    String payload;
-
-    if (selectedMode == ModeService.showJumping) {
-      payload = 'd0,e0';
-    } else if (selectedMode == ModeService.mountedSports) {
-      payload = 'd0,e1';
-    } else {
-      payload = 'd0,e0';
-    }
-
-    await btService.sendData(payload);
+    final eventCode = modeService.getEventCode();
+    final command = CommandProtocol.buildStartCommand(eventCode);
+    
+    print('📡 Sending device reset signal: $command');
+    await btService.sendData(command);
   }
 
   String _generateDummyRiderNumber() {

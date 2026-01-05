@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/logger.dart';
+import '../utils/command_protocol.dart';
 
 class ModeService {
   static final ModeService _instance = ModeService._internal();
@@ -144,5 +145,38 @@ class ModeService {
   // Check if race type is Start → Verify → Finish
   bool isStartVerifyFinishMode() {
     return _raceType == startVerifyFinish;
+  }
+
+  /// Get the event code (e0-e3) based on current mode and sub-mode
+  /// 
+  /// Returns:
+  /// - e0: Mounted Sports Start/Finish
+  /// - e1: Mounted Sports Start/Verify/Finish
+  /// - e2: Show Jumping Top Score
+  /// - e3: Show Jumping Normal
+  String getEventCode() {
+    if (_selectedMode == showJumping) {
+      // Show Jumping modes
+      if (_jumpingMode == topScore) {
+        return CommandProtocol.eventShowJumpingTopScore; // e2
+      } else if (_jumpingMode == normal) {
+        return CommandProtocol.eventShowJumpingNormal; // e3
+      }
+      // Default to Top Score if jumping mode not set
+      return CommandProtocol.eventShowJumpingTopScore; // e2
+    } else if (_selectedMode == mountedSports) {
+      // Mounted Sports modes
+      if (_raceType == startVerifyFinish) {
+        return CommandProtocol.eventMountedStartVerifyFinish; // e1
+      } else if (_raceType == startFinish) {
+        return CommandProtocol.eventMountedStartFinish; // e0
+      }
+      // Default to Start/Finish if race type not set
+      return CommandProtocol.eventMountedStartFinish; // e0
+    }
+    
+    // Fallback to e0 if mode not recognized
+    Logger.warning('Unknown mode when getting event code, defaulting to e0', tag: 'ModeService');
+    return CommandProtocol.eventMountedStartFinish; // e0
   }
 }

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/bluetooth_service.dart';
+import '../services/mode_service.dart';
+import '../utils/command_protocol.dart';
 import 'race_results_screen.dart';
 
 class ActiveRaceScreen extends StatefulWidget {
@@ -100,10 +102,29 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     });
   }
 
-  void _togglePause() {
+  void _togglePause() async {
+    final modeService = ModeService();
+    final btService = BluetoothService();
+    final eventCode = modeService.getEventCode();
+    
     setState(() {
       _isPaused = !_isPaused;
     });
+
+    // Send pause or resume command to hardware
+    String command;
+    if (_isPaused) {
+      command = CommandProtocol.buildPauseCommand(eventCode);
+      print('📤 Sending PAUSE command: $command');
+    } else {
+      command = CommandProtocol.buildResumeCommand(eventCode);
+      print('📤 Sending RESUME command: $command');
+    }
+    
+    bool sent = await btService.sendData(command);
+    if (!sent) {
+      print('❌ Failed to send pause/resume command');
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -168,8 +189,12 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
   Future<void> _finishRace() async {
     final btService = BluetoothService();
+    final modeService = ModeService();
+    final eventCode = modeService.getEventCode();
+    final command = CommandProtocol.buildFinishCommand(eventCode);
 
-    bool sent = await btService.sendData('d1,e0');
+    print('🏁 Sending finish command: $command');
+    bool sent = await btService.sendData(command);
     if (sent) {
       final currentTime = _elapsedSeconds;
       final hours = currentTime ~/ 3600;
@@ -277,8 +302,12 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
   Future<void> _disqualifyRace() async {
     final btService = BluetoothService();
+    final modeService = ModeService();
+    final eventCode = modeService.getEventCode();
+    final command = CommandProtocol.buildFinishCommand(eventCode);
 
-    bool sent = await btService.sendData('d1,e0');
+    print('❌ Sending disqualify command: $command');
+    bool sent = await btService.sendData(command);
     if (sent) {
       final currentTime = _elapsedSeconds;
       final hours = currentTime ~/ 3600;
@@ -347,12 +376,21 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
   void _listenForStopSignal() {
     final btService = BluetoothService();
+    final modeService = ModeService();
+    final expectedEventCode = modeService.getEventCode();
+    
     _bluetoothSubscription = btService.messageStream.listen((message) {
       print('📨 Race screen received: $message');
 
-      if (message.contains('STOP')) {
-        print('🏁 STOP signal received - Race finished!');
+      // Validate command format and check if it's a STOP command
+      if (CommandProtocol.isValidIncomingCommand(message) &&
+          CommandProtocol.isStopCommand(message) &&
+          CommandProtocol.matchesEventCode(message, expectedEventCode)) {
+        print('🏁 Valid STOP command received: $message');
         _handleRaceComplete(message);
+      } else if (message.toLowerCase().contains('stop')) {
+        // Log invalid format but don't act on it
+        print('⚠️ Invalid STOP message format received: $message');
       }
     });
   }
@@ -362,8 +400,8 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
     Map<String, int> timeData;
 
-    if (stopMessage != null && stopMessage.contains('STOP,')) {
-      // Parse time from ESP32 message: STOP,12:34:34:456
+    if (stopMessage != null && CommandProtocol.getData(stopMessage) != null) {
+      // Parse time from ESP32 message: stop,d1,e#,HH:MM:SS:mmm
       timeData = _parseTimeDataFromStopMessage(stopMessage);
       print(
         '✅ Race completed in time from ESP32: ${timeData['hours']}:${timeData['minutes']}:${timeData['seconds']}:${timeData['milliseconds']}',
@@ -420,10 +458,10 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
   Map<String, int> _parseTimeDataFromStopMessage(String message) {
     try {
-      // Extract time part from "STOP,12:34:34:456"
-      final parts = message.split(',');
-      if (parts.length >= 2) {
-        final timeString = parts[1].trim();
+      // Extract time data from "stop,d1,e#,HH:MM:SS:mmm"
+      final data = CommandProtocol.getData(message);
+      if (data != null) {
+        final timeString = data.trim();
 
         // Parse format: HH:MM:SS:mmm (hours:minutes:seconds:milliseconds)
         final timeParts = timeString.split(':');
@@ -564,14 +602,17 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   Future<void> _stopRace() async {
     print('🛑 ACTIVE RACE: _stopRace() method called');
     final btService = BluetoothService();
+    final modeService = ModeService();
+    final eventCode = modeService.getEventCode();
+    final command = CommandProtocol.buildFinishCommand(eventCode);
 
-    print('🛑 ACTIVE RACE: About to send d1,e0 payload');
+    print('🛑 ACTIVE RACE: About to send stop command: $command');
     print('🛑 ACTIVE RACE: Bluetooth connected: ${btService.isConnected}');
     // Send disarm command to device to stop the race
-    bool sent = await btService.sendData('d1,e0');
+    bool sent = await btService.sendData(command);
     if (sent) {
       print(
-        '✅ ACTIVE RACE: Stop race signal sent successfully to ESP32: d1,e0',
+        '✅ ACTIVE RACE: Stop race signal sent successfully to ESP32: $command',
       );
 
       // Calculate current elapsed time for the stopped race

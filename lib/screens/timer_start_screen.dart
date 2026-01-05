@@ -3,6 +3,7 @@ import 'bluetooth_ready_screen.dart';
 import 'bluetooth_failed_screen.dart';
 import '../services/bluetooth_service.dart';
 import '../services/mode_service.dart';
+import '../utils/command_protocol.dart';
 
 class TimerStartScreen extends StatefulWidget {
   const TimerStartScreen({
@@ -168,35 +169,17 @@ class _TimerStartScreenState extends State<TimerStartScreen>
       _isConnected = true;
     });
 
-    btService.messageStream.listen((message) {
-      _handleArduinoMessage(message);
-    });
-
     await _sendBeaconSignal();
   }
 
   Future<void> _sendBeaconSignal() async {
     final btService = BluetoothService();
     final modeService = ModeService();
-    final selected = modeService.getMode();
-    String payload;
-    if (selected == ModeService.showJumping) {
-      payload = 'd0,e0';
-    } else if (selected == ModeService.mountedSports) {
-      payload = 'd0,e1';
-    } else {
-      payload = 'd0,ff';
-    }
-
-    await btService.sendData(payload);
-  }
-
-  void _handleArduinoMessage(String message) {
-    if (message.contains('START')) {
-      // handled in ready screen
-    } else if (message.contains('STOP')) {
-      // handled in active race screen
-    }
+    final eventCode = modeService.getEventCode();
+    final command = CommandProtocol.buildStartCommand(eventCode);
+    
+    print('📡 Sending START beacon signal: $command');
+    await btService.sendData(command);
   }
 
   void _showConnectionError(String error) {
