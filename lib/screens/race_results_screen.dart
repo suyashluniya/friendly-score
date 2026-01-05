@@ -51,84 +51,101 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   bool get _isDisqualifiedRace => widget.raceStatus == 'disqualified';
   bool get _isFinishedRace => widget.raceStatus == 'finished';
 
-  /// Shows confirmation dialog when navigating away without saving
-  /// Returns: 'save' to save and continue, 'continue' to continue without saving, null to cancel
-  Future<String?> _showUnsavedDataDialog() async {
-    if (_isSaved) return 'continue'; // Already saved, allow navigation
+  @override
+  void initState() {
+    super.initState();
+    // Auto-save data when results screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autoSaveRaceData();
+    });
+  }
 
-    final String? result = await showDialog<String>(
+  /// Auto-saves race data and shows confirmation modal
+  Future<void> _autoSaveRaceData() async {
+    await _saveRaceData();
+    
+    // Show success modal if saved
+    if (mounted && _isSaved) {
+      await _showSaveSuccessModal();
+    }
+  }
+
+  /// Shows a modal dialog confirming data has been saved
+  Future<void> _showSaveSuccessModal() async {
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Unsaved Data'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Race data has not been saved. What would you like to do?',
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle,
+                  color: Colors.green.shade600,
+                  size: 48,
+                ),
               ),
               const SizedBox(height: 24),
-              // Save button (primary action)
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                onPressed: () => Navigator.of(context).pop('save'),
-                child: const Text('Save'),
+              Text(
+                'Data Saved Successfully!',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green.shade700,
+                    ),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              // Continue without saving button
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.orange,
-                  side: const BorderSide(color: Colors.orange),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                onPressed: () => Navigator.of(context).pop('continue'),
-                child: const Text('Continue Without Saving'),
+              Text(
+                'Your race data has been automatically saved to the database.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
-              // Cancel button
-              TextButton(
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-                onPressed: () => Navigator.of(context).pop(null),
-                child: const Text('Cancel'),
               ),
             ],
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
           ),
         );
       },
     );
-
-    return result;
   }
 
-  /// Handles navigation with unsaved data check
-  Future<void> _handleNavigationWithSaveCheck(VoidCallback onNavigate) async {
-    final result = await _showUnsavedDataDialog();
-
-    if (result == null) return; // User cancelled
-
-    if (result == 'save') {
-      // Save data first, then navigate
-      await _saveRaceData();
-      if (mounted && _isSaved) {
-        onNavigate();
-      }
-    } else if (result == 'continue') {
-      // Continue without saving
-      if (mounted) {
-        onNavigate();
-      }
+  /// Handles navigation - no save check needed since auto-saved
+  Future<void> _handleNavigation(VoidCallback onNavigate) async {
+    if (mounted) {
+      onNavigate();
     }
   }
 
@@ -266,21 +283,14 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async {
-        final result = await _showUnsavedDataDialog();
-        if (result == 'save') {
-          await _saveRaceData();
-          return _isSaved;
-        }
-        return result == 'continue';
-      },
+      onWillPop: () async => true, // Allow back navigation since auto-saved
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Race Results'),
           leading: IconButton(
             icon: const Icon(Icons.home_outlined),
             onPressed: () {
-              _handleNavigationWithSaveCheck(() {
+              _handleNavigation(() {
                 Navigator.of(context).popUntil((route) => route.isFirst);
               });
             },
@@ -470,20 +480,20 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: (_isSaving || _isSaved) ? null : _saveRaceData,
-                      icon: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                          : _isSaved
-                              ? const Icon(Icons.check_circle_outline)
+                      onPressed: null, // Disabled since auto-saved
+                      icon: _isSaved
+                          ? const Icon(Icons.check_circle_outline)
+                          : _isSaving
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
                               : const Icon(Icons.save_outlined),
                       label: Text(
                         _isSaving
@@ -492,19 +502,19 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                                 ? 'SAVED'
                                 : 'SAVE',
                       ),
-                      style: _isSaved
-                          ? ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green.shade600,
-                              foregroundColor: Colors.white,
-                            )
-                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isSaved ? Colors.green.shade600 : null,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: _isSaved ? Colors.green.shade600 : Colors.grey.shade400,
+                        disabledForegroundColor: Colors.white,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        _handleNavigationWithSaveCheck(() {
+                        _handleNavigation(() {
                           final currentMode = ModeService().getMode();
 
                           // Navigate with proper back button stack
