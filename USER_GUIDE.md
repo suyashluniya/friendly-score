@@ -375,12 +375,14 @@ Phase 2 (Orange → Red):
 #### Each Race Record Shows:
 
 **Left Side**:
+
 - **Rider Name**: Displays rider's name or "Rider name not available" if not set
 - **Rider Number**: Shows as a blue badge (e.g., "#42") if available
 - **Sport Mode**: The type of race (Mounted Sports, Show Jumping, etc.)
 - **Date & Time**: When the race took place
 
 **Right Side**:
+
 - **Elapsed Time**: Large, easy-to-read time display (HH:MM:SS:MS format)
 - **Status Badge**: Color-coded status indicator
   - 🟢 **FINISHED** (Green): Successfully completed
@@ -392,7 +394,7 @@ Phase 2 (Orange → Red):
 - **Tap Any Record**: Click on any race row to view complete details
 - **Detailed View Shows**:
   - **Status Header**: Large status indicator with race time
-  - **Rider Information**: 
+  - **Rider Information**:
     - Name and number
     - Photo (if available)
   - **Performance Details**:

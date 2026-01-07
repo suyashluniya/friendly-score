@@ -15,7 +15,7 @@ class RaceDetailScreen extends StatelessWidget {
     final event = raceData['event'] as Map<String, dynamic>? ?? {};
     final location = event['location'] as Map<String, dynamic>? ?? {};
     final hardware = raceData['hardware'] as Map<String, dynamic>? ?? {};
-    
+
     final riderName = rider['name']?.toString() ?? 'Unknown Rider';
     final riderNumber = rider['number']?.toString() ?? '';
     final photoPath = rider['photoPath']?.toString() ?? '';
@@ -29,12 +29,12 @@ class RaceDetailScreen extends StatelessWidget {
     final locationAddress = location['address']?.toString() ?? '';
     final timestamp = raceData['timestamp']?.toString() ?? '';
     final deviceUsed = hardware['deviceUsed']?.toString() ?? 'Unknown Device';
-    
+
     // Determine status details
     Color statusColor;
     IconData statusIcon;
     String statusLabel;
-    
+
     if (isStopped) {
       statusColor = Colors.orange.shade600;
       statusIcon = FontAwesomeIcons.stop;
@@ -48,13 +48,14 @@ class RaceDetailScreen extends StatelessWidget {
       statusIcon = FontAwesomeIcons.xmark;
       statusLabel = 'DISQUALIFIED';
     }
-    
+
     // Format timestamp
     String formattedDateTime = '';
     if (timestamp.isNotEmpty) {
       try {
         final dateTime = DateTime.parse(timestamp);
-        formattedDateTime = '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} at ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+        formattedDateTime =
+            '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} at ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
       } catch (e) {
         formattedDateTime = 'Unknown date';
       }
@@ -104,10 +105,7 @@ class RaceDetailScreen extends StatelessWidget {
                     statusIcon,
                     size: 48,
                     color: Colors.white,
-                  ).animate().scale(
-                    duration: 600.ms,
-                    curve: Curves.elasticOut,
-                  ),
+                  ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
                   const SizedBox(height: 16),
                   Text(
                     statusLabel,
@@ -136,160 +134,174 @@ class RaceDetailScreen extends StatelessWidget {
                 ],
               ),
             ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2),
-            
+
             const SizedBox(height: 24),
-            
+
             // Rider Information Card
             _buildInfoCard(
-              context,
-              title: 'Rider Information',
-              icon: FontAwesomeIcons.user,
-              iconColor: Colors.blue.shade600,
-              children: [
-                _buildInfoRow(
                   context,
-                  'Name',
-                  riderName,
-                  FontAwesomeIcons.user,
-                ),
-                if (riderNumber.isNotEmpty)
-                  _buildInfoRow(
-                    context,
-                    'Number',
-                    '#$riderNumber',
-                    FontAwesomeIcons.hashtag,
-                  ),
-                if (photoPath.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: File(photoPath).existsSync()
-                        ? Image.file(
-                            File(photoPath),
-                            height: 200,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            height: 200,
-                            color: Colors.grey.shade200,
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    FontAwesomeIcons.image,
-                                    size: 48,
-                                    color: Colors.grey.shade400,
+                  title: 'Rider Information',
+                  icon: FontAwesomeIcons.user,
+                  iconColor: Colors.blue.shade600,
+                  children: [
+                    _buildInfoRow(
+                      context,
+                      'Name',
+                      riderName,
+                      FontAwesomeIcons.user,
+                    ),
+                    if (riderNumber.isNotEmpty)
+                      _buildInfoRow(
+                        context,
+                        'Number',
+                        '#$riderNumber',
+                        FontAwesomeIcons.hashtag,
+                      ),
+                    if (photoPath.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: File(photoPath).existsSync()
+                            ? Image.file(
+                                File(photoPath),
+                                height: 200,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(
+                                height: 200,
+                                color: Colors.grey.shade200,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        FontAwesomeIcons.image,
+                                        size: 48,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Photo not available',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Photo not available',
-                                    style: TextStyle(color: Colors.grey.shade600),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
-                          ),
-                  ),
-                ],
-              ],
-            ).animate().fadeIn(duration: 600.ms, delay: 200.ms).slideX(begin: -0.2),
-            
+                      ),
+                    ],
+                  ],
+                )
+                .animate()
+                .fadeIn(duration: 600.ms, delay: 200.ms)
+                .slideX(begin: -0.2),
+
             const SizedBox(height: 16),
-            
+
             // Performance Details Card
             _buildInfoCard(
-              context,
-              title: 'Performance Details',
-              icon: FontAwesomeIcons.stopwatch,
-              iconColor: Colors.purple.shade600,
-              children: [
-                _buildInfoRow(
                   context,
-                  'Elapsed Time',
-                  elapsedTime,
-                  FontAwesomeIcons.clock,
-                ),
-                if (targetTime.isNotEmpty)
-                  _buildInfoRow(
-                    context,
-                    'Target Time',
-                    targetTime,
-                    FontAwesomeIcons.bullseye,
-                  ),
-                _buildInfoRow(
-                  context,
-                  'Status',
-                  status,
-                  statusIcon,
-                  valueColor: statusColor,
-                ),
-              ],
-            ).animate().fadeIn(duration: 600.ms, delay: 300.ms).slideX(begin: 0.2),
-            
+                  title: 'Performance Details',
+                  icon: FontAwesomeIcons.stopwatch,
+                  iconColor: Colors.purple.shade600,
+                  children: [
+                    _buildInfoRow(
+                      context,
+                      'Elapsed Time',
+                      elapsedTime,
+                      FontAwesomeIcons.clock,
+                    ),
+                    if (targetTime.isNotEmpty)
+                      _buildInfoRow(
+                        context,
+                        'Target Time',
+                        targetTime,
+                        FontAwesomeIcons.bullseye,
+                      ),
+                    _buildInfoRow(
+                      context,
+                      'Status',
+                      status,
+                      statusIcon,
+                      valueColor: statusColor,
+                    ),
+                  ],
+                )
+                .animate()
+                .fadeIn(duration: 600.ms, delay: 300.ms)
+                .slideX(begin: 0.2),
+
             const SizedBox(height: 16),
-            
+
             // Event Information Card
             _buildInfoCard(
-              context,
-              title: 'Event Information',
-              icon: FontAwesomeIcons.calendar,
-              iconColor: Colors.green.shade600,
-              children: [
-                _buildInfoRow(
                   context,
-                  'Mode',
-                  mode,
-                  FontAwesomeIcons.gamepad,
-                ),
-                _buildInfoRow(
-                  context,
-                  'Date & Time',
-                  formattedDateTime,
-                  FontAwesomeIcons.calendarDay,
-                ),
-                _buildInfoRow(
-                  context,
-                  'Location',
-                  locationName,
-                  FontAwesomeIcons.mapMarkerAlt,
-                ),
-                if (locationAddress.isNotEmpty)
-                  _buildInfoRow(
-                    context,
-                    'Address',
-                    locationAddress,
-                    FontAwesomeIcons.locationDot,
-                  ),
-              ],
-            ).animate().fadeIn(duration: 600.ms, delay: 400.ms).slideX(begin: -0.2),
-            
+                  title: 'Event Information',
+                  icon: FontAwesomeIcons.calendar,
+                  iconColor: Colors.green.shade600,
+                  children: [
+                    _buildInfoRow(
+                      context,
+                      'Mode',
+                      mode,
+                      FontAwesomeIcons.gamepad,
+                    ),
+                    _buildInfoRow(
+                      context,
+                      'Date & Time',
+                      formattedDateTime,
+                      FontAwesomeIcons.calendarDay,
+                    ),
+                    _buildInfoRow(
+                      context,
+                      'Location',
+                      locationName,
+                      FontAwesomeIcons.mapMarkerAlt,
+                    ),
+                    if (locationAddress.isNotEmpty)
+                      _buildInfoRow(
+                        context,
+                        'Address',
+                        locationAddress,
+                        FontAwesomeIcons.locationDot,
+                      ),
+                  ],
+                )
+                .animate()
+                .fadeIn(duration: 600.ms, delay: 400.ms)
+                .slideX(begin: -0.2),
+
             const SizedBox(height: 16),
-            
+
             // Hardware Information Card
             _buildInfoCard(
-              context,
-              title: 'Hardware Information',
-              icon: FontAwesomeIcons.microchip,
-              iconColor: Colors.orange.shade600,
-              children: [
-                _buildInfoRow(
                   context,
-                  'Device',
-                  deviceUsed,
-                  FontAwesomeIcons.bluetooth,
-                ),
-                _buildInfoRow(
-                  context,
-                  'Connection',
-                  'Successful',
-                  FontAwesomeIcons.checkCircle,
-                  valueColor: Colors.green.shade600,
-                ),
-              ],
-            ).animate().fadeIn(duration: 600.ms, delay: 500.ms).slideX(begin: 0.2),
-            
+                  title: 'Hardware Information',
+                  icon: FontAwesomeIcons.microchip,
+                  iconColor: Colors.orange.shade600,
+                  children: [
+                    _buildInfoRow(
+                      context,
+                      'Device',
+                      deviceUsed,
+                      FontAwesomeIcons.bluetooth,
+                    ),
+                    _buildInfoRow(
+                      context,
+                      'Connection',
+                      'Successful',
+                      FontAwesomeIcons.checkCircle,
+                      valueColor: Colors.green.shade600,
+                    ),
+                  ],
+                )
+                .animate()
+                .fadeIn(duration: 600.ms, delay: 500.ms)
+                .slideX(begin: 0.2),
+
             const SizedBox(height: 24),
           ],
         ),
@@ -328,11 +340,7 @@ class RaceDetailScreen extends StatelessWidget {
                   color: iconColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: iconColor,
-                ),
+                child: Icon(icon, size: 20, color: iconColor),
               ),
               const SizedBox(width: 12),
               Text(
@@ -363,11 +371,7 @@ class RaceDetailScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: Colors.grey.shade500,
-          ),
+          Icon(icon, size: 16, color: Colors.grey.shade500),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
