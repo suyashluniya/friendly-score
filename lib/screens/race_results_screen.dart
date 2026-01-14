@@ -631,15 +631,18 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
         widget.elapsedMinutes > 0 ||
         widget.elapsedSecondsOnly > 0 ||
         widget.elapsedMilliseconds > 0) {
-      final millisStr = widget.elapsedMilliseconds.toString();
-      final millis = millisStr.length >= 2
-          ? millisStr.substring(0, 2)
-          : millisStr.padLeft(2, '0');
+      // Format milliseconds: Keep 3 digits, pad with zeros if needed
+      final millisStr = widget.elapsedMilliseconds.toString().padLeft(3, '0');
 
+      // Only show hours if they exist
       if (widget.elapsedHours > 0) {
-        return '${widget.elapsedHours.toString().padLeft(2, '0')}:${widget.elapsedMinutes.toString().padLeft(2, '0')}:${widget.elapsedSecondsOnly.toString().padLeft(2, '0')}:$millis';
+        return '${widget.elapsedHours}:${widget.elapsedMinutes.toString().padLeft(2, '0')}:${widget.elapsedSecondsOnly.toString().padLeft(2, '0')}:$millisStr';
+      } else if (widget.elapsedMinutes > 0) {
+        // Only show minutes if they exist
+        return '${widget.elapsedMinutes}:${widget.elapsedSecondsOnly.toString().padLeft(2, '0')}:$millisStr';
       } else {
-        return '${widget.elapsedMinutes.toString().padLeft(2, '0')}:${widget.elapsedSecondsOnly.toString().padLeft(2, '0')}:$millis';
+        // Just seconds and milliseconds
+        return '${widget.elapsedSecondsOnly}:$millisStr';
       }
     } else {
       int hours = widget.elapsedSeconds ~/ 3600;
@@ -647,9 +650,11 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
       int secs = widget.elapsedSeconds % 60;
 
       if (hours > 0) {
-        return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}:00';
+        return '${hours}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}:000';
+      } else if (minutes > 0) {
+        return '${minutes}:${secs.toString().padLeft(2, '0')}:000';
       } else {
-        return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}:00';
+        return '${secs}:000';
       }
     }
   }
