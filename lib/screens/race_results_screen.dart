@@ -660,14 +660,23 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   }
 
   Widget _buildTimeLabels() {
-    bool hasHours = widget.elapsedHours > 0;
+    // Determine what components are shown based on actual values
+    bool hasHours = false;
+    bool hasMinutes = false;
+    
     bool hasDetailedTime = widget.elapsedHours > 0 ||
         widget.elapsedMinutes > 0 ||
         widget.elapsedSecondsOnly > 0 ||
         widget.elapsedMilliseconds > 0;
 
-    if (!hasDetailedTime) {
-      hasHours = (widget.elapsedSeconds ~/ 3600) > 0;
+    if (hasDetailedTime) {
+      hasHours = widget.elapsedHours > 0;
+      hasMinutes = widget.elapsedMinutes > 0 || hasHours;
+    } else {
+      int hours = widget.elapsedSeconds ~/ 3600;
+      int minutes = (widget.elapsedSeconds % 3600) ~/ 60;
+      hasHours = hours > 0;
+      hasMinutes = minutes > 0 || hasHours;
     }
 
     return Row(
@@ -677,11 +686,13 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
           _buildTimeLabel('HH'),
           _buildTimeSeparator(),
         ],
-        _buildTimeLabel('MM'),
-        _buildTimeSeparator(),
+        if (hasMinutes) ...[
+          _buildTimeLabel('MM'),
+          _buildTimeSeparator(),
+        ],
         _buildTimeLabel('SS'),
         _buildTimeSeparator(),
-        _buildTimeLabel('MS'),
+        _buildTimeLabel('mmm'),
       ],
     );
   }
