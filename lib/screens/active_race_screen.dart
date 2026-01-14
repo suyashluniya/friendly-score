@@ -126,22 +126,19 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   }
 
   void _togglePause() async {
-    final modeService = ModeService();
     final btService = BluetoothService();
-    final eventCode = modeService.getEventCode();
-    
+
     setState(() {
       _isPaused = !_isPaused;
     });
 
-    // Send pause or resume command to hardware
+    // Send pause or resume command to hardware (just the keyword)
     String command;
     if (_isPaused) {
-      command = CommandProtocol.buildPauseCommand(eventCode);
+      command = CommandProtocol.buildPauseCommand();
       print('📤 Sending PAUSE command: $command');
     } else {
-      command = CommandProtocol.buildResumeCommand(eventCode);
-      print('📤 Sending RESUME command: $command');
+      command = CommandProtocol.buildResumeCommand();
     }
     
     bool sent = await btService.sendData(command);
@@ -399,21 +396,19 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
   void _listenForStopSignal() {
     final btService = BluetoothService();
-    final modeService = ModeService();
-    final expectedEventCode = modeService.getEventCode();
     
     _bluetoothSubscription = btService.messageStream.listen((message) {
       print('📨 Race screen received: $message');
 
-      // Validate command format and check if it's a STOP command
-      if (CommandProtocol.isValidIncomingCommand(message) &&
-          CommandProtocol.isStopCommand(message) &&
-          CommandProtocol.matchesEventCode(message, expectedEventCode)) {
-        print('🏁 Valid STOP command received: $message');
+      // Check if it's a STOP/FINISH signal (either 'stop' keyword or beacon format d1,e#)
+      final trimmedMessage = message.trim().toLowerCase();
+      final isStopKeyword = trimmedMessage == 'stop';
+      final isFinishBeacon = CommandProtocol.isValidBeaconCommand(message) && 
+                            message.startsWith('d1'); // d1 = stop action
+      
+      if (isStopKeyword || isFinishBeacon) {
+        print('🏁 STOP/FINISH command received: $message');
         _handleRaceComplete(message);
-      } else if (message.toLowerCase().contains('stop')) {
-        // Log invalid format but don't act on it
-        print('⚠️ Invalid STOP message format received: $message');
       }
     });
   }
@@ -423,30 +418,22 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
     Map<String, int> timeData;
 
-    if (stopMessage != null && CommandProtocol.getData(stopMessage) != null) {
-      // Parse time from ESP32 message: stop,d1,e#,HH:MM:SS:mmm
-      timeData = _parseTimeDataFromStopMessage(stopMessage);
-      print(
-        '✅ Race completed in time from ESP32: ${timeData['hours']}:${timeData['minutes']}:${timeData['seconds']}:${timeData['milliseconds']}',
-      );
+    // Try to parse time from hardware message (format: stop,HH:MM:SS:mmm or d1,e#,HH:MM:SS:mmm)
+    if (stopMessage != null && stopMessage.contains(',')) {
+      timeData = _parseTimeFromHardware(stopMessage);
+      if (timeData['totalSeconds']! > 0) {
+        print(
+          '✅ Using HARDWARE time: ${timeData['hours']}h ${timeData['minutes']}m ${timeData['seconds']}s ${timeData['milliseconds']}ms',
+        );
+      } else {
+        // Parsing failed, fallback to internal timer
+        timeData = _getInternalTimerData();
+        print('⚠️ Hardware time parse failed, using internal timer');
+      }
     } else {
-      // Fallback to app's internal timer
-      final elapsedTime = DateTime.now().difference(_startTime);
-      final elapsedSeconds = elapsedTime.inSeconds;
-      final hours = elapsedSeconds ~/ 3600;
-      final minutes = (elapsedSeconds % 3600) ~/ 60;
-      final seconds = elapsedSeconds % 60;
-
-      timeData = {
-        'hours': hours,
-        'minutes': minutes,
-        'seconds': seconds,
-        'milliseconds': 0, // No milliseconds from internal timer
-        'totalSeconds': elapsedSeconds,
-      };
-      print(
-        '✅ Race completed in ${_formatTime(elapsedSeconds)} (internal timer)',
-      );
+      // No time data in message, use internal timer
+      timeData = _getInternalTimerData();
+      print('🕒 No time data from hardware, using internal timer');
     }
 
     // Determine if race was successful
@@ -479,74 +466,94 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     }
   }
 
-  Map<String, int> _parseTimeDataFromStopMessage(String message) {
+  /// Parses time from hardware message
+  /// Supports formats: 
+  /// - stop,HH:MM:SS:mmm
+  /// - d1,e#,HH:MM:SS:mmm
+  /// - HH:MM:SS:mmm (just the time string)
+  Map<String, int> _parseTimeFromHardware(String message) {
     try {
-      // Extract time data from "stop,d1,e#,HH:MM:SS:mmm"
-      final data = CommandProtocol.getData(message);
-      if (data != null) {
-        final timeString = data.trim();
-
-        // Parse format: HH:MM:SS:mmm (hours:minutes:seconds:milliseconds)
-        final timeParts = timeString.split(':');
-        if (timeParts.length == 4) {
-          final hours = int.parse(timeParts[0]);
-          final minutes = int.parse(timeParts[1]);
-          final seconds = int.parse(timeParts[2]);
-          final milliseconds = int.parse(timeParts[3]);
-
-          final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
-          print(
-            '🕒 Parsed time: ${hours}h ${minutes}m ${seconds}s ${milliseconds}ms = ${totalSeconds}s total',
-          );
-
+      print('🔍 Parsing hardware time from: $message');
+      
+      // Extract time string from message
+      String timeString;
+      final parts = message.split(',');
+      
+      if (parts.length >= 2) {
+        // Could be "stop,HH:MM:SS:mmm" or "d1,e2,HH:MM:SS:mmm"
+        // Time is always the last part
+        timeString = parts.last.trim();
+      } else {
+        timeString = message.trim();
+      }
+      
+      print('🕒 Extracted time string: $timeString');
+      
+      // Parse format: HH:MM:SS:mmm or HH:MM:SS or MM:SS:mmm
+      final timeParts = timeString.split(':');
+      
+      if (timeParts.length == 4) {
+        // Format: HH:MM:SS:mmm
+        final hours = int.parse(timeParts[0]);
+        final minutes = int.parse(timeParts[1]);
+        final seconds = int.parse(timeParts[2]);
+        final milliseconds = int.parse(timeParts[3]);
+        final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+        
+        print('✅ Parsed: ${hours}h ${minutes}m ${seconds}s ${milliseconds}ms = ${totalSeconds}s total');
+        
+        return {
+          'hours': hours,
+          'minutes': minutes,
+          'seconds': seconds,
+          'milliseconds': milliseconds,
+          'totalSeconds': totalSeconds,
+        };
+      } else if (timeParts.length == 3) {
+        // Format: MM:SS:mmm or HH:MM:SS
+        final part1 = int.parse(timeParts[0]);
+        final part2 = int.parse(timeParts[1]);
+        final part3 = int.parse(timeParts[2]);
+        
+        // Check if part3 looks like milliseconds (< 1000) or seconds
+        if (part3 < 100) {
+          // Likely HH:MM:SS format
+          final totalSeconds = (part1 * 3600) + (part2 * 60) + part3;
           return {
-            'hours': hours,
-            'minutes': minutes,
-            'seconds': seconds,
-            'milliseconds': milliseconds,
+            'hours': part1,
+            'minutes': part2,
+            'seconds': part3,
+            'milliseconds': 0,
             'totalSeconds': totalSeconds,
           };
-        } else if (timeParts.length == 3) {
-          // Fallback for old format: HH:MM:SSS or MM:SS:SSS
-          final hours = int.parse(timeParts[0]);
-          final minutes = int.parse(timeParts[1]);
-          final secondsAndMillis = timeParts[2];
-
-          // Handle seconds with milliseconds (e.g., "555" means 55.5 seconds)
-          final seconds =
-              int.parse(secondsAndMillis) ~/ 10; // Convert 555 to 55 seconds
-          final milliseconds =
-              (int.parse(secondsAndMillis) % 10) *
-              100; // Approximate milliseconds
-
-          final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
-          print(
-            '🕒 Parsed time (old format): ${hours}h ${minutes}m ${seconds}s ${milliseconds}ms = ${totalSeconds}s total',
-          );
-
+        } else {
+          // Likely MM:SS:mmm format
+          final totalSeconds = (part1 * 60) + part2;
           return {
-            'hours': hours,
-            'minutes': minutes,
-            'seconds': seconds,
-            'milliseconds': milliseconds,
+            'hours': 0,
+            'minutes': part1,
+            'seconds': part2,
+            'milliseconds': part3,
             'totalSeconds': totalSeconds,
           };
         }
       }
     } catch (e) {
-      print('❌ Error parsing time from message: $message - $e');
+      print('❌ Error parsing hardware time from "$message": $e');
     }
-
-    // Fallback to internal timer if parsing fails
-    print(
-      '⚠️ Could not parse time from message: $message, using internal timer',
-    );
+    
+    // Return invalid data to trigger fallback
+    return {'hours': 0, 'minutes': 0, 'seconds': 0, 'milliseconds': 0, 'totalSeconds': 0};
+  }
+  
+  /// Gets time from internal app timer as fallback
+  Map<String, int> _getInternalTimerData() {
     final elapsedTime = DateTime.now().difference(_startTime);
     final elapsedSeconds = elapsedTime.inSeconds;
     final hours = elapsedSeconds ~/ 3600;
     final minutes = (elapsedSeconds % 3600) ~/ 60;
     final seconds = elapsedSeconds % 60;
-
+    
     return {
       'hours': hours,
       'minutes': minutes,
@@ -582,128 +589,6 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
           'isSuccess': false,
           'raceStatus': 'timeExceeded',
         },
-      );
-    }
-  }
-
-  Future<void> _showStopRaceConfirmation() async {
-    final bool? shouldStop = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Stop Race'),
-          content: const Text(
-            'Do you really want to stop the race? This will end the current race and record it as stopped.',
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Stop Race'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (shouldStop == true) {
-      await _stopRace();
-    }
-  }
-
-  Future<void> _stopRace() async {
-    print('🛑 ACTIVE RACE: _stopRace() method called');
-    final btService = BluetoothService();
-    final modeService = ModeService();
-    final eventCode = modeService.getEventCode();
-    final command = CommandProtocol.buildFinishCommand(eventCode);
-
-    print('🛑 ACTIVE RACE: About to send stop command: $command');
-    print('🛑 ACTIVE RACE: Bluetooth connected: ${btService.isConnected}');
-    // Send disarm command to device to stop the race
-    bool sent = await btService.sendData(command);
-    if (sent) {
-      print(
-        '✅ ACTIVE RACE: Stop race signal sent successfully to ESP32: $command',
-      );
-
-      // Calculate current elapsed time for the stopped race
-      final currentTime = _elapsedSeconds;
-      final hours = currentTime ~/ 3600;
-      final minutes = (currentTime % 3600) ~/ 60;
-      final seconds = currentTime % 60;
-
-      // Stop the timer
-      _timer.cancel();
-
-      // Show confirmation that race was stopped
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(child: Text('Race has been stopped and recorded')),
-            ],
-          ),
-          backgroundColor: Colors.orange.shade600,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-
-      // Navigate to results screen with stopped race data
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed(
-          RaceResultsScreen.routeName,
-          arguments: {
-            'elapsedSeconds': currentTime,
-            'elapsedHours': hours,
-            'elapsedMinutes': minutes,
-            'elapsedSecondsOnly': seconds,
-            'elapsedMilliseconds': 0,
-            'maxSeconds': _maxTimeSeconds,
-            'riderName': widget.riderName,
-            'riderNumber': widget.riderNumber,
-            'photoPath': widget.photoPath,
-            'isSuccess': false, // Stopped race is considered unsuccessful
-            'raceStatus': 'stopped', // Add status to identify stopped races
-          },
-        );
-      }
-    } else {
-      print('❌ ACTIVE RACE: Failed to send stop race signal');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.error_outline, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(child: Text('Failed to stop race. Please try again.')),
-            ],
-          ),
-          backgroundColor: Colors.red.shade600,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
       );
     }
   }
