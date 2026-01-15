@@ -3,8 +3,10 @@
 /// Defines the command protocol format for communication with ESP32 hardware.
 /// 
 /// Protocol Format:
-/// - Commands FROM hardware: Just the keyword `start`
-///   Example: `start`
+/// - Commands FROM hardware: 
+///   * Start signal: Just the keyword `start`
+///   * Stop signal with time: `Stop,hh:mm:ss:msmsms`
+///   Example: `start`, `Stop,01:23:45:123`
 /// 
 /// - Commands TO hardware for beacon/finish/disqualify: `d#,e#`
 ///   Examples: `d0,e0`, `d1,e2`

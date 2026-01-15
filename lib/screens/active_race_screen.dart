@@ -44,6 +44,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   bool _isPaused = false;
   bool _isTopScoreMode = false;
   bool _isInCountdownPhase = false; // Track if Top Score is in countdown phase
+  bool _isWaitingForFinishTime = false; // Track if waiting for device to send finish time
 
   bool get _isMountedSports => widget.raceType != null;
 
@@ -216,53 +217,43 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     print('🏁 Sending finish command: $command');
     bool sent = await btService.sendData(command);
     if (sent) {
-      final currentTime = _elapsedSeconds;
-      final hours = currentTime ~/ 3600;
-      final minutes = (currentTime % 3600) ~/ 60;
-      final seconds = currentTime % 60;
-
-      _timer.cancel();
+      // Set waiting state and show waiting message
+      setState(() {
+        _isWaitingForFinishTime = true;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
               SizedBox(width: 12),
-              Expanded(child: Text('Race finished successfully')),
+              Expanded(child: Text('Waiting for finish time from module...')),
             ],
           ),
-          backgroundColor: Colors.green.shade600,
+          backgroundColor: Colors.orange.shade600,
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
+          duration: const Duration(seconds: 10), // Show for longer
         ),
       );
 
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        // For Mounted Sports (no max time), race is always successful when finished
-        // For Show Jumping, check if time is within limit
-        final isSuccess = _isMountedSports || currentTime <= _maxTimeSeconds;
-        Navigator.of(context).pushReplacementNamed(
-          RaceResultsScreen.routeName,
-          arguments: {
-            'elapsedSeconds': currentTime,
-            'elapsedHours': hours,
-            'elapsedMinutes': minutes,
-            'elapsedSecondsOnly': seconds,
-            'elapsedMilliseconds': 0,
-            'maxSeconds': _maxTimeSeconds,
-            'riderName': widget.riderName,
-            'riderNumber': widget.riderNumber,
-            'photoPath': widget.photoPath,
-            'isSuccess': isSuccess,
-            'raceStatus': 'finished',
-          },
-        );
-      }
+      // Start timeout timer (30 seconds)
+      Timer(const Duration(seconds: 30), () {
+        if (_isWaitingForFinishTime && mounted) {
+          _handleFinishTimeout();
+        }
+      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -282,6 +273,37 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
         ),
       );
     }
+  }
+
+  void _handleFinishTimeout() {
+    setState(() {
+      _isWaitingForFinishTime = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Timeout waiting for finish time. Using internal timer.',
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+
+    // Use internal timer as fallback
+    _handleRaceComplete(null);
   }
 
   Future<void> _showDisqualifyConfirmation() async {
@@ -400,15 +422,29 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     _bluetoothSubscription = btService.messageStream.listen((message) {
       print('📨 Race screen received: $message');
 
+      // Check if it's a STOP/FINISH signal with time (format: Stop,hh:mm:ss:msmsms)
+      final trimmedMessage = message.trim();
+      final isStopWithTime = trimmedMessage.toLowerCase().startsWith('stop,');
+      
       // Check if it's a STOP/FINISH signal (either 'stop' keyword or beacon format d1,e#)
-      final trimmedMessage = message.trim().toLowerCase();
-      final isStopKeyword = trimmedMessage == 'stop';
+      final isStopKeyword = trimmedMessage.toLowerCase() == 'stop';
       final isFinishBeacon = CommandProtocol.isValidBeaconCommand(message) && 
                             message.startsWith('d1'); // d1 = stop action
       
-      if (isStopKeyword || isFinishBeacon) {
-        print('🏁 STOP/FINISH command received: $message');
+      if (isStopWithTime) {
+        print('🏁 STOP with time received: $message');
+        if (_isWaitingForFinishTime) {
+          setState(() {
+            _isWaitingForFinishTime = false;
+          });
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        }
         _handleRaceComplete(message);
+      } else if (isStopKeyword || isFinishBeacon) {
+        print('🏁 STOP/FINISH command received: $message');
+        if (!_isWaitingForFinishTime) {
+          _handleRaceComplete(message);
+        }
       }
     });
   }
@@ -468,6 +504,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
   /// Parses time from hardware message
   /// Supports formats: 
+  /// - Stop,hh:mm:ss:msmsms (main format from device)
   /// - stop,HH:MM:SS:mmm
   /// - d1,e#,HH:MM:SS:mmm
   /// - HH:MM:SS:mmm (just the time string)
@@ -480,7 +517,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
       final parts = message.split(',');
       
       if (parts.length >= 2) {
-        // Could be "stop,HH:MM:SS:mmm" or "d1,e2,HH:MM:SS:mmm"
+        // Could be "Stop,hh:mm:ss:msmsms" or "stop,HH:MM:SS:mmm" or "d1,e2,HH:MM:SS:mmm"
         // Time is always the last part
         timeString = parts.last.trim();
       } else {
@@ -489,15 +526,22 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
       
       print('🕒 Extracted time string: $timeString');
       
-      // Parse format: HH:MM:SS:mmm or HH:MM:SS or MM:SS:mmm
+      // Parse format: HH:MM:SS:mmm where mmm can be 2 or 3 digits
       final timeParts = timeString.split(':');
       
       if (timeParts.length == 4) {
-        // Format: HH:MM:SS:mmm
+        // Format: HH:MM:SS:mmm or hh:mm:ss:msmsms
         final hours = int.parse(timeParts[0]);
         final minutes = int.parse(timeParts[1]);
         final seconds = int.parse(timeParts[2]);
-        final milliseconds = int.parse(timeParts[3]);
+        var milliseconds = int.parse(timeParts[3]);
+        
+        // Handle different millisecond formats
+        if (milliseconds >= 1000) {
+          // If milliseconds > 999, assume it's in microsecond format, convert to ms
+          milliseconds = milliseconds ~/ 10; // Convert microseconds to milliseconds
+        }
+        
         final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
         
         print('✅ Parsed: ${hours}h ${minutes}m ${seconds}s ${milliseconds}ms = ${totalSeconds}s total');
@@ -679,19 +723,27 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
         // Finish Race Button
         Expanded(
           child: GestureDetector(
-            onTap: _showFinishRaceConfirmation,
+            onTap: _isWaitingForFinishTime ? null : _showFinishRaceConfirmation,
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 20),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF10B981), Color(0xFF047857)],
-                ),
+                gradient: _isWaitingForFinishTime
+                    ? const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
+                      )
+                    : const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF10B981), Color(0xFF047857)],
+                      ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF10B981).withOpacity(0.4),
+                    color: (_isWaitingForFinishTime 
+                        ? const Color(0xFFF59E0B) 
+                        : const Color(0xFF10B981)).withOpacity(0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -706,16 +758,25 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                       color: Colors.white.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.flag_rounded,
-                      color: Colors.white,
-                      size: 32,
-                    ),
+                    child: _isWaitingForFinishTime
+                        ? const SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.flag_rounded,
+                            color: Colors.white,
+                            size: 32,
+                          ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'FINISH',
-                    style: TextStyle(
+                  Text(
+                    _isWaitingForFinishTime ? 'WAITING...' : 'FINISH',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -845,19 +906,27 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
         // Finish Race Button
         Expanded(
           child: GestureDetector(
-            onTap: _showFinishRaceConfirmation,
+            onTap: _isWaitingForFinishTime ? null : _showFinishRaceConfirmation,
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF10B981), Color(0xFF047857)],
-                ),
+                gradient: _isWaitingForFinishTime
+                    ? const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
+                      )
+                    : const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF10B981), Color(0xFF047857)],
+                      ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF10B981).withOpacity(0.4),
+                    color: (_isWaitingForFinishTime 
+                        ? const Color(0xFFF59E0B) 
+                        : const Color(0xFF10B981)).withOpacity(0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -872,16 +941,25 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                       color: Colors.white.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.flag_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
+                    child: _isWaitingForFinishTime
+                        ? const SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.flag_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'FINISH',
-                    style: TextStyle(
+                  Text(
+                    _isWaitingForFinishTime ? 'WAITING...' : 'FINISH',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
