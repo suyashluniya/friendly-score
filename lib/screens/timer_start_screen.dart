@@ -176,7 +176,17 @@ class _TimerStartScreenState extends State<TimerStartScreen>
     final btService = BluetoothService();
     final modeService = ModeService();
     final eventCode = modeService.getEventCode();
-    final command = CommandProtocol.buildStartCommand(eventCode);
+    
+    // For Top Score mode, include the time allowed in seconds
+    String command;
+    if (!_isMountedSports && modeService.isTopScoreMode()) {
+      final timeAllowedSeconds = (widget.selectedHours * 3600) + 
+                                (widget.selectedMinutes * 60) + 
+                                widget.selectedSeconds;
+      command = CommandProtocol.buildStartCommand(eventCode, timeInSeconds: timeAllowedSeconds);
+    } else {
+      command = CommandProtocol.buildStartCommand(eventCode);
+    }
     
     print('📡 Sending START beacon signal: $command');
     await btService.sendData(command);

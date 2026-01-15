@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/bluetooth_service.dart';
-import '../services/mode_service.dart';
 import '../utils/command_protocol.dart';
 import 'active_race_screen.dart';
 
@@ -60,24 +59,9 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
   }
 
   void _startRace() async {
-    // For show jumping top score mode, send the time allowed to the device
-    final modeService = ModeService();
-    if (!_isMountedSports && modeService.isTopScoreMode()) {
-      final timeAllowedSeconds = (widget.selectedHours * 3600) + 
-                                (widget.selectedMinutes * 60) + 
-                                widget.selectedSeconds;
-      
-      final eventCode = modeService.getEventCode();
-      final timeCommand = CommandProtocol.buildTimeCommand(eventCode, timeAllowedSeconds);
-      
-      print('📤 Sending time allowed command: $timeCommand');
-      final btService = BluetoothService();
-      bool sent = await btService.sendData(timeCommand);
-      if (!sent) {
-        print('❌ Failed to send time command');
-      }
-    }
-
+    // Note: Time command is now sent earlier in the flow (rider_details_screen and timer_start_screen)
+    // No need to send it again here for Top Score mode
+    
     if (mounted) {
       Navigator.of(context).pushReplacementNamed(
         ActiveRaceScreen.routeName,

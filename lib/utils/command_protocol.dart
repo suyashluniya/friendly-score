@@ -59,8 +59,19 @@ class CommandProtocol {
 
   // ========== COMMAND BUILDING METHODS ==========
 
-  /// Builds a START beacon command: d0,e#
-  static String buildStartCommand(String eventCode) {
+  /// Builds a START beacon command: d0,e# or d0,e#,t## (with time for Top Score)
+  /// 
+  /// Parameters:
+  /// - eventCode: The event code (e0-e3)
+  /// - timeInSeconds: Optional time in seconds (only for Show Jumping Top Score mode)
+  /// 
+  /// Returns:
+  /// - d0,e# for normal modes
+  /// - d0,e#,t## for Top Score mode with time
+  static String buildStartCommand(String eventCode, {int? timeInSeconds}) {
+    if (timeInSeconds != null && timeInSeconds > 0) {
+      return '$actionStart,$eventCode,t$timeInSeconds';
+    }
     return '$actionStart,$eventCode';
   }
 
