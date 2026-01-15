@@ -11,6 +11,9 @@
 /// - Commands TO hardware for beacon/finish/disqualify: `d#,e#`
 ///   Examples: `d0,e0`, `d1,e2`
 /// 
+/// - Commands TO hardware with time for show jumping top score: `d0,e#,t##`
+///   Examples: `d0,e2,t45` (45 seconds time allowed)
+/// 
 /// - Commands TO hardware for pause/resume: Just the keyword
 ///   Examples: `pause`, `resume`
 /// 
@@ -74,6 +77,11 @@ class CommandProtocol {
   /// Builds a FINISH command: d1,e#
   static String buildFinishCommand(String eventCode) {
     return '$actionStop,$eventCode';
+  }
+
+  /// Builds a TIME command with seconds: d0,e#,t##
+  static String buildTimeCommand(String eventCode, int timeInSeconds) {
+    return '$actionStart,$eventCode,t$timeInSeconds';
   }
 
   // ========== VALIDATION HELPERS ==========

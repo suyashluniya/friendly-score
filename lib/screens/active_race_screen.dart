@@ -607,10 +607,22 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     };
   }
 
-  void _handleTimeExpired() {
+  void _handleTimeExpired() async {
     _timer.cancel();
 
     print('⏰ Maximum time exceeded!');
+
+    // Send disarm command to device
+    final btService = BluetoothService();
+    final modeService = ModeService();
+    final eventCode = modeService.getEventCode();
+    final disarmCommand = CommandProtocol.buildFinishCommand(eventCode);
+    
+    print('📤 Sending disarm command due to time exceeded: $disarmCommand');
+    bool sent = await btService.sendData(disarmCommand);
+    if (!sent) {
+      print('❌ Failed to send disarm command');
+    }
 
     // Navigate to results screen showing time exceeded
     if (mounted) {
