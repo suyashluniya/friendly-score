@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 
 enum LogLevel {
   debug,
@@ -9,7 +10,8 @@ enum LogLevel {
 
 class Logger {
   static const String _appName = 'FriendlyScore';
-  static bool _enableDebug = true;
+  // Automatically disable debug logs in release builds
+  static bool _enableDebug = kDebugMode;
 
   static void setDebugMode(bool enabled) {
     _enableDebug = enabled;

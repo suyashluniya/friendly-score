@@ -1,8 +1,10 @@
 <div align="center">
 
-# Timing / Mode Selection Demo
+# Friendly Score
 
-Lightweight Flutter application showcasing a polished Mode Selection flow (Jumping + Mounted Sports) with animated cards, nested option screens, themed typography (Google Fonts) and basic widget tests. Serves as a starter / reference for adding additional sport timing modes.
+Professional equestrian timing application for show jumping and mounted sports events. Real-time timing system with Bluetooth connectivity to ESP32 hardware, comprehensive race management, and performance analytics.
+
+**Version 2.0.7**
 
 </div>
 
@@ -10,166 +12,247 @@ Lightweight Flutter application showcasing a polished Mode Selection flow (Jumpi
 
 ## ✨ Features
 
-Core
-- Mode Selection landing screen (animated with `flutter_animate`)
-- Two primary modes: Show Jumping & Mounted (Mountain) Sports
-- Nested Jumping options: Top Score & Normal modes
-- Consistent theming & typography via `GoogleFonts.poppinsTextTheme`
+### Core Functionality
+- **PIN-Protected Access** – Secure login with customizable 4-digit PIN and master reset
+- **Event Location Management** – Configure and save event venues with location details
+- **Dual Sport Modes** – Show Jumping and Mounted Sports timing
+- **Real-Time Bluetooth Timing** – Connect to ESP32 hardware for precise race timing
+- **Race Management** – Active race monitoring with countdown, pause/resume, and results
+- **Comprehensive Reporting** – Race history, analytics, and performance reports
 
-UI / UX
-- Material 3 theme configuration (light scheme, custom buttons & cards)
-- Hero wrappers on mode cards (ready for future detailed transitions)
-- Responsive safe-area layout & accessible large tap targets
+### Hardware Integration
+- Bluetooth connectivity to ESP32 timing devices
+- Binary protocol for command transmission
+- Real-time race data streaming
+- Automatic device discovery and pairing
 
-Code & Tooling
-- Centralized route table in `main.dart`
-- Widget test example (mode selection navigation)
-- Lints enabled via `flutter_lints`
+### User Experience
+- Material 3 design with modern UI
+- Animated transitions and haptic feedback
+- PDF report generation with rider photos
+- Persistent data storage for race history
+- Settings screen with PIN management
+
+### Security
+- PIN-based authentication with persistent storage
+- Secure master reset functionality
+- Production-ready logging system
+- Configurable debug modes
 
 ---
 
-## 📁 Project Structure (Selected)
+## 🔧 Hardware Requirements
+
+- **ESP32 Bluetooth Device** – Custom timing hardware for race events
+- Configured with timing sensors and race detection
+- Communicates via binary protocol (see `lib/utils/command_protocol.dart`)
+
+---
+
+## 📁 Project Structure
 
 ```
 lib/
-  main.dart                      # App entry, theme & routes
+  main.dart                        # App entry, theme & routes
   screens/
-    mode_selection_screen.dart   # Landing mode picker
-    jumping_screen.dart          # Secondary menu for jumping options
-    top_score_screen.dart        # (Placeholder) Top score jumping mode
-    normal_jumping_screen.dart   # (Placeholder) Normal jumping mode
-    mountain_sport_screen.dart   # (Placeholder) Mounted sport mode
-
-
----
-
-## 🧭 Routes
-
-| Route | Screen | Purpose |
-|-------|--------|---------|
-| `/` | `ModeSelectionScreen` | Choose main sport mode |
-| `/jumping` | `JumpingScreen` | Jumping sub-mode menu |
-| `/jumping/top` | `TopScoreJumpingScreen` | Placeholder next screen |
-| `/jumping/normal` | `NormalJumpingScreen` | Placeholder next screen |
-| `/mountain` | `MountainSportScreen` | Placeholder mounted sport mode |
-
-These are registered in `MaterialApp.routes` inside `main.dart`.
-
----
-
-## 🛠 Dependencies
-
-Runtime:
-- `flutter` (Material 3)
-- `google_fonts` – custom Poppins font styling
-- `flutter_animate` – entrance animations for screen widgets
-
-Dev / Test:
-- `flutter_test`
-- `flutter_lints`
+    pin_login_screen.dart          # Secure PIN authentication
+    event_location_screen.dart     # Event venue configuration
+    mode_selection_screen.dart     # Sport mode selection hub
+    jumping_screen.dart            # Show jumping mode options
+    mountain_sport_screen.dart     # Mounted sports timing
+    bluetooth_ready_screen.dart    # Bluetooth device connection
+    active_race_screen.dart        # Live race monitoring
+    race_results_screen.dart       # Race completion & results
+    reporting_screen.dart          # Historical race data
+    settings_screen.dart           # App configuration & PIN management
+    change_pin_screen.dart         # PIN modification flow
+    forgot_pin_screen.dart         # Master reset functionality
+  services/
+    bluetooth_service.dart         # ESP32 Bluetooth communication
+    location_service.dart          # Event location persistence
+    mode_service.dart              # Sport mode state management
+    unified_race_data_service.dart # Race data storage & retrieval
+    pin_service.dart               # PIN authentication service
+  utils/
+    command_protocol.dart          # Binary protocol definitions
+    logger.dart                    # Production logging utility
+```
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Flutter SDK installed (matching Dart SDK constraint `^3.9.2`)
-- Device, emulator, or Chrome (for web)
+- Flutter SDK 3.9.2 or higher
+- Android Studio / Xcode for mobile development
+- ESP32 timing hardware (for full functionality)
 
-Check versions:
+Check Flutter installation:
 ```sh
 flutter --version
+flutter doctor
 ```
 
-### Install Packages
+### Installation
+
+1. **Clone the repository**
+```sh
+git clone <repository-url>
+cd friendly-score
+```
+
+2. **Install dependencies**
 ```sh
 flutter pub get
 ```
 
-### Run (choose one target)
+3. **Configure assets**
+- Place app icon: `assets/icons/app_icon.png` (1024x1024px)
+- Place splash image: `assets/images/splash_horse.png`
+
+4. **Generate icons and splash screens**
 ```sh
-flutter run                      # Auto pick device
-flutter run -d chrome            # Web
-flutter run -d windows           # Windows desktop (if enabled)
-flutter run -d macos             # macOS (if enabled)
-flutter run -d android           # Android emulator / device
+dart run flutter_launcher_icons
+dart run flutter_native_splash:create
+```
+
+5. **Run the application**
+```sh
+flutter run -d <device>
 ```
 
 ---
 
+## 🔐 Default Credentials
+
+**Default PIN:** `0000`  
+**Master Reset Phrase:** `masterreset` (case-insensitive)
+
+Users should change the default PIN immediately via Settings → Change PIN.
+
+---
+
+## 📱 Platform Support
+
+- ✅ **Android** – Fully supported (MinSDK 24, Android 7.0+)
+- ✅ **iOS** – Fully supported (iOS 12.0+)
+- ⚠️ **Web/Desktop** – Limited (Bluetooth not supported)
+
+---
+
 ## 🧪 Testing
+
 Run all tests:
 ```sh
 flutter test
 ```
 
-Focus a single test file:
+Run specific test:
 ```sh
 flutter test test/mode_selection_test.dart
 ```
 
 ---
 
-## 📦 Building
+## 📦 Production Builds
 
-Common build outputs:
+### Android
 ```sh
-flutter build apk            # Android (release)
-flutter build appbundle      # Android Play Store
-flutter build ios            # iOS (requires Xcode setup)
-flutter build web            # Web (builds to build/web)
-flutter build windows        # Windows desktop
+# APK (for distribution)
+flutter build apk --release
+
+# App Bundle (for Google Play)
+flutter build appbundle --release
 ```
 
-Specify versioning (override `pubspec.yaml`):
+### iOS
 ```sh
-flutter build apk --build-name 1.0.1 --build-number 2
+# Requires macOS with Xcode
+flutter build ios --release
+
+# Build IPA
+flutter build ipa --release
+```
+
+### Version Management
+Version is defined in `pubspec.yaml`:
+```yaml
+version: 2.0.7+7  # format: major.minor.patch+buildNumber
 ```
 
 ---
 
-## 🧩 Architecture Notes
-Currently the project is intentionally simple:
-- Stateless screens with direct `Navigator.pushNamed` routing
-- Theming centralized in `MyApp` (could be extracted later)
-- Placeholder / future expansion screens kept minimal
+## 🛠 Development
 
-Potential next steps:
-1. Introduce state management (Provider / Riverpod / BLoC) when dynamic data arrives
-2. Add route generation + deep links
-3. Replace placeholder screens with real timing / scoring logic
-4. Implement animations between Hero-tagged cards & detail screens
-5. Add golden tests and screenshot testing for visual regression
-
----
-
-## 🧹 Code Quality
-Static analysis:
+### Code Quality
 ```sh
+# Run static analysis
 flutter analyze
-```
-Format code:
-```sh
+
+# Format code
 dart format .
 ```
+
+### Logging
+The app uses a centralized Logger utility (`lib/utils/logger.dart`):
+- Automatically disabled in release builds
+- Supports debug, info, warning, and error levels
+- Integrated with Flutter DevTools
+
+### Linting Rules
+Production-ready linting enabled in `analysis_options.yaml`:
+- `avoid_print: true` – Enforces Logger usage
+- `prefer_single_quotes: true`
+- `prefer_const_constructors: true`
+
+---
+
+## 🏗 Architecture
+
+- **State Management** – StatefulWidgets with `setState` for screen-level state
+- **Data Persistence** – SharedPreferences for lightweight storage
+- **Hardware Communication** – Custom Bluetooth service with binary protocol
+- **Navigation** – Named routes in MaterialApp
+- **Theming** – Material 3 with custom color scheme
+
+---
+
+## 📖 Documentation
+
+- **User Guide:** See `USER_GUIDE.md` for detailed usage instructions
+- **Protocol Spec:** See `lib/utils/command_protocol.dart` for hardware communication
+- **Timing System:** See `Timing System.pdf` for hardware specifications
 
 ---
 
 ## 🤝 Contributing
-1. Fork & branch (`feat/your-feature`)
-2. Run tests & analyzer before opening a PR
-3. Provide screenshots / screen recordings for UI changes
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feat/feature-name`)
+3. Commit changes (`git commit -m 'Add feature'`)
+4. Run tests and analyzer (`flutter test && flutter analyze`)
+5. Push to branch (`git push origin feat/feature-name`)
+6. Open a Pull Request
 
 ---
 
 ## 📄 License
-Currently unspecified. Add a `LICENSE` file if distributing.
+
+Proprietary - All rights reserved. Not for public distribution without authorization.
 
 ---
 
-## 📬 Contact / Notes
-Questions or ideas? Open an issue or start a discussion. This README reflects the structure as of the current commit and Flutter SDK constraint `^3.9.2`.
+## 🏆 Credits
+
+**Made with love by Rysing Hope ❤️**
 
 ---
 
-Happy building! 🛠
+## 📬 Support
+
+For questions, issues, or feature requests, please open an issue in the repository.
+
+---
+
+**Current Version:** 2.0.7  
+**Last Updated:** January 15, 2026

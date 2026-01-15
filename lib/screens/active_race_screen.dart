@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../services/bluetooth_service.dart';
 import '../services/mode_service.dart';
 import '../utils/command_protocol.dart';
+import '../utils/logger.dart';
 import 'race_results_screen.dart';
 
 class ActiveRaceScreen extends StatefulWidget {
@@ -88,12 +89,14 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     _listenForStopSignal();
 
     if (_isMountedSports) {
-      print(
+      Logger.info(
         '🏁 Mounted Sports Race started! Race type: ${widget.raceType}',
+        tag: 'ActiveRace',
       );
     } else {
-      print(
+      Logger.info(
         '🏁 Race started! Time allowed: ${_formatTime(_timeAllowedSeconds)}, Max time: ${_formatTime(_maxTimeSeconds)}',
+        tag: 'ActiveRace',
       );
     }
   }
@@ -108,7 +111,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
           if (_isTopScoreMode && _isInCountdownPhase && _elapsedSeconds >= _timeAllowedSeconds) {
             _isInCountdownPhase = false;
             _elapsedSeconds = 0; // Reset for count-up phase
-            print('🔄 Top Score: Switching from countdown to count-up phase');
+            Logger.debug('🔄 Top Score: Switching from countdown to count-up phase', tag: 'ActiveRace');
           }
 
           // Check if maximum time exceeded (for all Show Jumping modes)
@@ -137,7 +140,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     String command;
     if (_isPaused) {
       command = CommandProtocol.buildPauseCommand();
-      print('📤 Sending PAUSE command: $command');
+      Logger.debug('📤 Sending PAUSE command: $command', tag: 'ActiveRace');
     } else {
       command = CommandProtocol.buildResumeCommand();
     }
@@ -214,7 +217,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     final eventCode = modeService.getEventCode();
     final command = CommandProtocol.buildFinishCommand(eventCode);
 
-    print('🏁 Sending finish command: $command');
+    Logger.info('🏁 Sending finish command: $command', tag: 'ActiveRace');
     bool sent = await btService.sendData(command);
     if (sent) {
       // Set waiting state and show waiting message
@@ -348,7 +351,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     final eventCode = modeService.getEventCode();
     final command = CommandProtocol.buildFinishCommand(eventCode);
 
-    print('❌ Sending disqualify command: $command');
+    Logger.info('❌ Sending disqualify command: $command', tag: 'ActiveRace');
     bool sent = await btService.sendData(command);
     if (sent) {
       final currentTime = _elapsedSeconds;
@@ -420,7 +423,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     final btService = BluetoothService();
     
     _bluetoothSubscription = btService.messageStream.listen((message) {
-      print('📨 Race screen received: $message');
+      Logger.debug('📨 Race screen received: $message', tag: 'ActiveRace');
 
       // Check if it's a STOP/FINISH signal with time (format: Stop,hh:mm:ss:msmsms)
       final trimmedMessage = message.trim();
@@ -432,7 +435,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                             message.startsWith('d1'); // d1 = stop action
       
       if (isStopWithTime) {
-        print('🏁 STOP with time received: $message');
+        Logger.info('🏁 STOP with time received: $message', tag: 'ActiveRace');
         if (_isWaitingForFinishTime) {
           setState(() {
             _isWaitingForFinishTime = false;
@@ -441,7 +444,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
         }
         _handleRaceComplete(message);
       } else if (isStopKeyword || isFinishBeacon) {
-        print('🏁 STOP/FINISH command received: $message');
+        Logger.info('🏁 STOP/FINISH command received: $message', tag: 'ActiveRace');
         if (!_isWaitingForFinishTime) {
           _handleRaceComplete(message);
         }
@@ -458,18 +461,19 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     if (stopMessage != null && stopMessage.contains(',')) {
       timeData = _parseTimeFromHardware(stopMessage);
       if (timeData['totalSeconds']! > 0) {
-        print(
+        Logger.debug(
           '✅ Using HARDWARE time: ${timeData['hours']}h ${timeData['minutes']}m ${timeData['seconds']}s ${timeData['milliseconds']}ms',
+          tag: 'ActiveRace',
         );
       } else {
         // Parsing failed, fallback to internal timer
         timeData = _getInternalTimerData();
-        print('⚠️ Hardware time parse failed, using internal timer');
+        Logger.debug('⚠️ Hardware time parse failed, using internal timer', tag: 'ActiveRace');
       }
     } else {
       // No time data in message, use internal timer
       timeData = _getInternalTimerData();
-      print('🕒 No time data from hardware, using internal timer');
+      Logger.debug('🕒 No time data from hardware, using internal timer', tag: 'ActiveRace');
     }
 
     // Determine if race was successful
@@ -477,8 +481,9 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     // For Show Jumping, check if time is within limit
     final isSuccess = _isMountedSports || timeData['totalSeconds']! <= _maxTimeSeconds;
 
-    print(
+    Logger.info(
       '🏁 Race result: ${isSuccess ? "COMPLETED" : "TIME EXCEEDED"} - Elapsed: ${timeData['totalSeconds']}s, Max: ${_maxTimeSeconds}s',
+      tag: 'ActiveRace',
     );
 
     // Navigate to results screen
@@ -510,7 +515,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   /// - HH:MM:SS:mmm (just the time string)
   Map<String, int> _parseTimeFromHardware(String message) {
     try {
-      print('🔍 Parsing hardware time from: $message');
+      Logger.debug('🔍 Parsing hardware time from: $message', tag: 'ActiveRace');
       
       // Extract time string from message
       String timeString;
@@ -524,7 +529,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
         timeString = message.trim();
       }
       
-      print('🕒 Extracted time string: $timeString');
+      Logger.debug('🕒 Extracted time string: $timeString', tag: 'ActiveRace');
       
       // Parse format: HH:MM:SS:mmm where mmm can be 2 or 3 digits
       final timeParts = timeString.split(':');
@@ -544,7 +549,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
         
         final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
         
-        print('✅ Parsed: ${hours}h ${minutes}m ${seconds}s ${milliseconds}ms = ${totalSeconds}s total');
+        Logger.debug('✅ Parsed: ${hours}h ${minutes}m ${seconds}s ${milliseconds}ms = ${totalSeconds}s total', tag: 'ActiveRace');
         
         return {
           'hours': hours,
@@ -583,7 +588,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
         }
       }
     } catch (e) {
-      print('❌ Error parsing hardware time from "$message": $e');
+      Logger.error('❌ Error parsing hardware time from "$message"', tag: 'ActiveRace', error: e);
     }
     
     // Return invalid data to trigger fallback
@@ -610,7 +615,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
   void _handleTimeExpired() async {
     _timer.cancel();
 
-    print('⏰ Maximum time exceeded!');
+    Logger.info('⏰ Maximum time exceeded!', tag: 'ActiveRace');
 
     // Send disarm command to device
     final btService = BluetoothService();
@@ -618,10 +623,10 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     final eventCode = modeService.getEventCode();
     final disarmCommand = CommandProtocol.buildFinishCommand(eventCode);
     
-    print('📤 Sending disarm command due to time exceeded: $disarmCommand');
+    Logger.debug('📤 Sending disarm command due to time exceeded: $disarmCommand', tag: 'ActiveRace');
     bool sent = await btService.sendData(disarmCommand);
     if (!sent) {
-      print('❌ Failed to send disarm command');
+      Logger.error('❌ Failed to send disarm command', tag: 'ActiveRace');
     }
 
     // Navigate to results screen showing time exceeded

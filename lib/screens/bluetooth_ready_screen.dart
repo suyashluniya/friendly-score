@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/bluetooth_service.dart';
 import '../utils/command_protocol.dart';
+import '../utils/logger.dart';
 import 'active_race_screen.dart';
 
 class BluetoothReadyScreen extends StatefulWidget {
@@ -52,7 +53,7 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
     _bluetoothSubscription = btService.messageStream.listen((message) {
       // Check if it's a START command (just the keyword 'start')
       if (CommandProtocol.isStartCommand(message)) {
-        print('✅ START command received: $message');
+        Logger.info('✅ START command received: $message', tag: 'BluetoothReady');
         _startRace();
       }
     });

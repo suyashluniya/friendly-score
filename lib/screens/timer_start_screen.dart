@@ -4,6 +4,7 @@ import 'bluetooth_failed_screen.dart';
 import '../services/bluetooth_service.dart';
 import '../services/mode_service.dart';
 import '../utils/command_protocol.dart';
+import '../utils/logger.dart';
 
 class TimerStartScreen extends StatefulWidget {
   const TimerStartScreen({
@@ -188,7 +189,7 @@ class _TimerStartScreenState extends State<TimerStartScreen>
       command = CommandProtocol.buildStartCommand(eventCode);
     }
     
-    print('📡 Sending START beacon signal: $command');
+    Logger.info('📡 Sending START beacon signal: $command', tag: 'TimerStart');
     await btService.sendData(command);
   }
 

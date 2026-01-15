@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../utils/logger.dart';
 
 class BluetoothService {
   static final BluetoothService _instance = BluetoothService._internal();
@@ -22,7 +23,7 @@ class BluetoothService {
   // Request Bluetooth permissions (Android 12+)
   Future<bool> requestBluetoothPermissions() async {
     try {
-      print('📋 Requesting Bluetooth permissions...');
+      Logger.debug('Requesting Bluetooth permissions...', tag: 'Bluetooth');
 
       // Request all necessary Bluetooth permissions
       Map<Permission, PermissionStatus> statuses = await [
@@ -34,17 +35,17 @@ class BluetoothService {
       bool allGranted = statuses.values.every((status) => status.isGranted);
 
       if (allGranted) {
-        print('✅ All Bluetooth permissions granted');
+        Logger.info('All Bluetooth permissions granted', tag: 'Bluetooth');
         return true;
       } else {
-        print('❌ Some Bluetooth permissions denied');
+        Logger.warning('Some Bluetooth permissions denied', tag: 'Bluetooth');
         statuses.forEach((permission, status) {
-          print('  - $permission: $status');
+          Logger.debug('$permission: $status', tag: 'Bluetooth');
         });
         return false;
       }
     } catch (e) {
-      print('❌ Error requesting permissions: $e');
+      Logger.error('Error requesting permissions', tag: 'Bluetooth', error: e);
       return false;
     }
   }
@@ -54,7 +55,7 @@ class BluetoothService {
     try {
       return await FlutterBluetoothSerial.instance.isEnabled ?? false;
     } catch (e) {
-      print('❌ Error checking Bluetooth status: $e');
+      Logger.error('Error checking Bluetooth status', tag: 'Bluetooth', error: e);
       return false;
     }
   }
@@ -64,7 +65,7 @@ class BluetoothService {
     try {
       return await FlutterBluetoothSerial.instance.requestEnable() ?? false;
     } catch (e) {
-      print('❌ Error requesting Bluetooth enable: $e');
+      Logger.error('Error requesting Bluetooth enable', tag: 'Bluetooth', error: e);
       return false;
     }
   }
@@ -74,7 +75,7 @@ class BluetoothService {
     try {
       return await FlutterBluetoothSerial.instance.getBondedDevices();
     } catch (e) {
-      print('❌ Error getting paired devices: $e');
+      Logger.error('Error getting paired devices', tag: 'Bluetooth', error: e);
       return [];
     }
   }
@@ -83,20 +84,20 @@ class BluetoothService {
   Future<BluetoothDevice?> findDeviceByName(String deviceName) async {
     try {
       List<BluetoothDevice> devices = await getPairedDevices();
-      print('🔍 Searching for device: $deviceName');
-      print('📱 Found ${devices.length} paired devices');
+      Logger.debug('Searching for device: $deviceName', tag: 'Bluetooth');
+      Logger.debug('Found ${devices.length} paired devices', tag: 'Bluetooth');
 
       for (var device in devices) {
-        print('  - ${device.name} (${device.address})');
+        Logger.debug('${device.name} (${device.address})', tag: 'Bluetooth');
         if (device.name == deviceName) {
-          print('✅ Found target device: ${device.name}');
+          Logger.info('Found target device: ${device.name}', tag: 'Bluetooth');
           return device;
         }
       }
-      print('❌ Device "$deviceName" not found in paired devices');
+      Logger.warning('Device "$deviceName" not found in paired devices', tag: 'Bluetooth');
       return null;
     } catch (e) {
-      print('❌ Error finding device: $e');
+      Logger.error('Error finding device', tag: 'Bluetooth', error: e);
       return null;
     }
   }
@@ -104,12 +105,12 @@ class BluetoothService {
   // Connect to a device
   Future<bool> connectToDevice(BluetoothDevice device) async {
     try {
-      print('🔌 Attempting to connect to ${device.name}...');
-      print('📍 Device address: ${device.address}');
+      Logger.info('Attempting to connect to ${device.name}...', tag: 'Bluetooth');
+      Logger.debug('Device address: ${device.address}', tag: 'Bluetooth');
 
       _connection = await BluetoothConnection.toAddress(device.address);
-      print('✅ Connected to ${device.name}!');
-      print('📡 Baud rate: 115200 (ESP32 default)');
+      Logger.info('Connected to ${device.name}!', tag: 'Bluetooth');
+      Logger.debug('Baud rate: 115200 (ESP32 default)', tag: 'Bluetooth');
 
       // Listen for incoming data
       _dataSubscription = _connection!.input!.listen(
@@ -124,45 +125,45 @@ class BluetoothService {
             _dataBuffer = _dataBuffer.substring(newlineIndex + 1);
 
             if (message.isNotEmpty) {
-              print('📨 Received from ESP32: $message');
+              Logger.debug('Received from ESP32: $message', tag: 'Bluetooth');
               _messageController.add(message);
             }
           }
         },
         onDone: () {
-          print('🔌 Disconnected from ${device.name}');
+          Logger.info('Disconnected from ${device.name}', tag: 'Bluetooth');
           disconnect();
         },
         onError: (error) {
-          print('❌ Connection error: $error');
+          Logger.error('Connection error', tag: 'Bluetooth', error: error);
           disconnect();
         },
       );
 
       return true;
     } catch (e) {
-      print('❌ Connection failed: $e');
+      Logger.error('Connection failed', tag: 'Bluetooth', error: e);
       return false;
     }
   }
 
   // Send data to ESP32
   Future<bool> sendData(String data) async {
-    print('📡 BLUETOOTH SERVICE: sendData() called with data: $data');
+    Logger.debug('sendData() called with data: $data', tag: 'Bluetooth');
     try {
-      print('📡 BLUETOOTH SERVICE: Connection status - _connection: ${_connection != null}, isConnected: ${_connection?.isConnected}');
+      Logger.debug('Connection status - _connection: ${_connection != null}, isConnected: ${_connection?.isConnected}', tag: 'Bluetooth');
       if (_connection != null && _connection!.isConnected) {
-        print('📡 BLUETOOTH SERVICE: About to send data to ESP32...');
+        Logger.debug('About to send data to ESP32...', tag: 'Bluetooth');
         _connection!.output.add(Uint8List.fromList(utf8.encode(data + '\n')));
         await _connection!.output.allSent;
-        print('📤 BLUETOOTH SERVICE: Successfully sent to ESP32: $data');
+        Logger.info('Successfully sent to ESP32: $data', tag: 'Bluetooth');
         return true;
       } else {
-        print('❌ BLUETOOTH SERVICE: Not connected to device');
+        Logger.warning('Not connected to device', tag: 'Bluetooth');
         return false;
       }
     } catch (e) {
-      print('❌ BLUETOOTH SERVICE: Error sending data: $e');
+      Logger.error('Error sending data', tag: 'Bluetooth', error: e);
       return false;
     }
   }
@@ -173,14 +174,14 @@ class BluetoothService {
       if (_connection != null && _connection!.isConnected) {
         _connection!.output.add(Uint8List.fromList(bytes));
         await _connection!.output.allSent;
-        print('📤 Sent ${bytes.length} bytes to ESP32');
+        Logger.info('Sent ${bytes.length} bytes to ESP32', tag: 'Bluetooth');
         return true;
       } else {
-        print('❌ Not connected to device');
+        Logger.warning('Not connected to device', tag: 'Bluetooth');
         return false;
       }
     } catch (e) {
-      print('❌ Error sending bytes: $e');
+      Logger.error('Error sending bytes', tag: 'Bluetooth', error: e);
       return false;
     }
   }
@@ -191,7 +192,7 @@ class BluetoothService {
     _connection?.dispose();
     _connection = null;
     _dataBuffer = '';
-    print('🔌 Bluetooth connection closed');
+    Logger.info('Bluetooth connection closed', tag: 'Bluetooth');
   }
 
   bool get isConnected => _connection != null && _connection!.isConnected;
