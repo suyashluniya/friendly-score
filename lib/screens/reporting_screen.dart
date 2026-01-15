@@ -253,7 +253,7 @@ class _ReportingScreenState extends State<ReportingScreen> {
               _buildSortMenuItem('Newest First', 'newest', FontAwesomeIcons.arrowDown),
               _buildSortMenuItem('Oldest First', 'oldest', FontAwesomeIcons.arrowUp),
               _buildSortMenuItem('Fastest Time', 'timeAsc', FontAwesomeIcons.gaugeHigh),
-              _buildSortMenuItem('Slowest Time', 'timeDesc', FontAwesomeIcons.gaugeLow),
+              _buildSortMenuItem('Slowest Time', 'timeDesc', FontAwesomeIcons.clockRotateLeft),
             ],
           ),
           const SizedBox(width: 8),
@@ -455,11 +455,12 @@ class _ReportingScreenState extends State<ReportingScreen> {
 
   Widget _buildFilterChip(String label, String value, Color color, IconData icon) {
     final isSelected = _selectedStatuses.contains(value);
+    final materialColor = color is MaterialColor ? color : Colors.blue;
     return FilterChip(
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: isSelected ? Colors.white : color.shade700),
+          Icon(icon, size: 12, color: isSelected ? Colors.white : materialColor.shade700),
           const SizedBox(width: 6),
           Text(label),
         ],
@@ -475,17 +476,17 @@ class _ReportingScreenState extends State<ReportingScreen> {
         });
         _applyFilters();
       },
-      backgroundColor: color.shade50,
-      selectedColor: color.shade600,
+      backgroundColor: materialColor.shade50,
+      selectedColor: materialColor.shade600,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : color.shade700,
+        color: isSelected ? Colors.white : materialColor.shade700,
         fontWeight: FontWeight.w600,
         fontSize: 13,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(
-          color: isSelected ? color.shade600 : color.shade200,
+          color: isSelected ? materialColor.shade600 : materialColor.shade200,
           width: 1.5,
         ),
       ),

@@ -665,6 +665,18 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     }
   }
 
+  bool get _hasHours {
+    int displaySeconds = _elapsedSeconds;
+    
+    if (_isTopScoreMode && _isInCountdownPhase) {
+      displaySeconds = _timeAllowedSeconds - _elapsedSeconds;
+      if (displaySeconds < 0) displaySeconds = 0;
+    }
+    
+    int hours = displaySeconds ~/ 3600;
+    return hours > 0;
+  }
+
   double get _progress {
     // No progress ring - using pulsing effect only
     return 0;
@@ -1154,16 +1166,24 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(
-                                  _formatTime(_elapsedSeconds),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .displayLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: _timerColor,
-                                        fontSize: 48,
-                                      ),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                    child: Text(
+                                      _formatTime(_elapsedSeconds),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .displayLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: _timerColor,
+                                            fontSize: _hasHours ? 32 : 48,
+                                          ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
