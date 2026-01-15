@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'event_location_screen.dart';
+import 'forgot_pin_screen.dart';
+import '../services/pin_service.dart';
 
 /// PIN login screen that appears before the main app
 class PinLoginScreen extends StatefulWidget {
   const PinLoginScreen({super.key});
 
   static const routeName = '/login';
-  static const String correctPin = '0000';
 
   @override
   State<PinLoginScreen> createState() => _PinLoginScreenState();
@@ -17,6 +18,7 @@ class PinLoginScreen extends StatefulWidget {
 class _PinLoginScreenState extends State<PinLoginScreen> {
   final List<String> _enteredPin = [];
   bool _isError = false;
+  final PinService _pinService = PinService();
 
   void _onNumberPressed(String number) {
     if (_enteredPin.length < 4) {
@@ -35,13 +37,16 @@ class _PinLoginScreenState extends State<PinLoginScreen> {
     }
   }
 
-  void _checkPin() {
+  void _checkPin() async {
     final enteredPinString = _enteredPin.join();
+    final isValid = await _pinService.verifyPin(enteredPinString);
 
-    if (enteredPinString == PinLoginScreen.correctPin) {
+    if (isValid) {
       // Correct PIN - navigate to event location screen
       HapticFeedback.mediumImpact();
-      Navigator.of(context).pushReplacementNamed(EventLocationScreen.routeName);
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed(EventLocationScreen.routeName);
+      }
     } else {
       // Wrong PIN - show error and reset
       HapticFeedback.heavyImpact();
@@ -51,10 +56,12 @@ class _PinLoginScreenState extends State<PinLoginScreen> {
 
       // Clear PIN after a delay
       Future.delayed(const Duration(milliseconds: 1000), () {
-        setState(() {
-          _enteredPin.clear();
-          _isError = false;
-        });
+        if (mounted) {
+          setState(() {
+            _enteredPin.clear();
+            _isError = false;
+          });
+        }
       });
     }
   }
@@ -160,10 +167,29 @@ class _PinLoginScreenState extends State<PinLoginScreen> {
 
               const Spacer(),
 
-              // Hint text
-              Text(
-                'Default PIN: 0000',
-                style: Theme.of(context).textTheme.bodySmall,
+              // Forgot PIN button with warning
+              Column(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pushNamed(ForgotPinScreen.routeName);
+                    },
+                    child: const Text(
+                      'Forgot PIN?',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Requires master password',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ).animate().fadeIn(duration: 600.ms, delay: 800.ms),
 
               const SizedBox(height: 24),

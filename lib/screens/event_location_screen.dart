@@ -18,7 +18,7 @@ class _EventLocationScreenState extends State<EventLocationScreen> {
   final _addressController = TextEditingController();
   final _additionalDetailsController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  
+
   bool _isLoading = true;
   bool _isSaving = false;
   Map<String, dynamic>? _currentLocation;
@@ -118,8 +118,10 @@ class _EventLocationScreenState extends State<EventLocationScreen> {
                         fontSize: 14,
                       ),
                     ),
-                    if (_currentLocation!['additionalDetails'] != null && 
-                        _currentLocation!['additionalDetails'].toString().isNotEmpty) ...[
+                    if (_currentLocation!['additionalDetails'] != null &&
+                        _currentLocation!['additionalDetails']
+                            .toString()
+                            .isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Text(
                         _currentLocation!['additionalDetails'],
@@ -134,7 +136,11 @@ class _EventLocationScreenState extends State<EventLocationScreen> {
                     if (_currentLocation!['lastUpdated'] != null) ...[
                       Row(
                         children: [
-                          Icon(Icons.access_time, size: 16, color: Colors.grey.shade500),
+                          Icon(
+                            Icons.access_time,
+                            size: 16,
+                            color: Colors.grey.shade500,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Updated: ${_formatDate(_currentLocation!['lastUpdated'])}',
@@ -162,9 +168,11 @@ class _EventLocationScreenState extends State<EventLocationScreen> {
                 Navigator.of(context).pop();
                 // Show the form to change location
                 setState(() {
-                  _locationNameController.text = _currentLocation!['locationName'] ?? '';
+                  _locationNameController.text =
+                      _currentLocation!['locationName'] ?? '';
                   _addressController.text = _currentLocation!['address'] ?? '';
-                  _additionalDetailsController.text = _currentLocation!['additionalDetails'] ?? '';
+                  _additionalDetailsController.text =
+                      _currentLocation!['additionalDetails'] ?? '';
                 });
               },
               child: const Text('CHANGE LOCATION'),
@@ -268,9 +276,9 @@ class _EventLocationScreenState extends State<EventLocationScreen> {
               const SizedBox(height: 16),
               Text(
                 'Loading event location...',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: Colors.grey.shade600),
               ),
             ],
           ),
@@ -307,14 +315,18 @@ class _EventLocationScreenState extends State<EventLocationScreen> {
                         size: 40,
                         color: Colors.blue.shade600,
                       ),
-                    ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
+                    ).animate().scale(
+                      duration: 600.ms,
+                      curve: Curves.elasticOut,
+                    ),
                     const SizedBox(height: 24),
                     Text(
                       'Set Event Location',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.5,
-                      ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
                       textAlign: TextAlign.center,
                     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2),
                     const SizedBox(height: 12),
@@ -350,9 +362,8 @@ class _EventLocationScreenState extends State<EventLocationScreen> {
                       // Location Name
                       Text(
                         'Location Name *',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -379,9 +390,8 @@ class _EventLocationScreenState extends State<EventLocationScreen> {
                       // Address
                       Text(
                         'Address *',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -408,9 +418,8 @@ class _EventLocationScreenState extends State<EventLocationScreen> {
                       // Additional Details
                       Text(
                         'Additional Details',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -455,7 +464,9 @@ class _EventLocationScreenState extends State<EventLocationScreen> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               ),
                               SizedBox(width: 12),

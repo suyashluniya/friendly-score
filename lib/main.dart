@@ -17,6 +17,9 @@ import 'screens/active_race_screen.dart';
 import 'screens/race_results_screen.dart';
 import 'screens/reporting_screen.dart';
 import 'screens/performance_report_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/change_pin_screen.dart';
+import 'screens/forgot_pin_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -458,6 +461,9 @@ class MyApp extends StatelessWidget {
         ReportingScreen.routeName: (_) => const ReportingScreen(),
         PerformanceReportScreen.routeName: (_) =>
             const PerformanceReportScreen(),
+        SettingsScreen.routeName: (_) => const SettingsScreen(),
+        ChangePinScreen.routeName: (_) => const ChangePinScreen(),
+        ForgotPinScreen.routeName: (_) => const ForgotPinScreen(),
       },
     );
   }

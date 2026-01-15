@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../services/mode_service.dart';
+import 'settings_screen.dart';
 
 /// First screen of the app allowing user to pick a sport mode.
 class ModeSelectionScreen extends StatelessWidget {
@@ -11,7 +12,18 @@ class ModeSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(automaticallyImplyLeading: false),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () {
+              Navigator.of(context).pushNamed(SettingsScreen.routeName);
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
