@@ -160,7 +160,7 @@ class _ReportingScreenState extends State<ReportingScreen> {
         backgroundColor: const Color(0xFFF8FAFC),
         elevation: 0,
         title: Text(
-          'All Race Records',
+          'All Records',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
             color: const Color(0xFF1E293B),
