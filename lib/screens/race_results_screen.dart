@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:demo/services/location_service.dart';
-import 'package:demo/services/mode_service.dart';
+import '../services/location_service.dart';
+import '../services/mode_service.dart';
 import 'package:flutter/material.dart';
 import 'mode_selection_screen.dart';
 import 'jumping_screen.dart';

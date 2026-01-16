@@ -40,14 +40,6 @@ class MountainSportScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2),
                 const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Text(
-                    'Track performance in equestrian and mounted sports events',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ).animate().fadeIn(delay: 400.ms),
-                ),
               ],
             ),
           ),

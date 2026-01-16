@@ -62,7 +62,7 @@ class ModeSelectionScreen extends StatelessWidget {
                         Flexible(
                           child: _ModeButton(
                             label: 'Mounted Sports',
-                            description: 'Equestrian and mounted events',
+                            description: '',
                             icon: FontAwesomeIcons.hourglassHalf,
                             heroTag: 'mode-mountain',
                             route: '/jumping',
@@ -74,7 +74,7 @@ class ModeSelectionScreen extends StatelessWidget {
                         Flexible(
                           child: _ModeButton(
                             label: 'Show Jumping',
-                            description: 'Time trials and competition modes',
+                            description: '',
                             icon: FontAwesomeIcons.paperPlane,
                             heroTag: 'mode-jumping',
                             route: '/jumping',
@@ -86,8 +86,7 @@ class ModeSelectionScreen extends StatelessWidget {
                         Flexible(
                           child: _ModeButton(
                             label: 'Reports & Analytics',
-                            description:
-                                'Performance insights and data analysis',
+                            description: '',
                             icon: FontAwesomeIcons.chartLine,
                             heroTag: 'mode-reporting',
                             route: '/reporting',
@@ -167,24 +166,11 @@ class _ModeButton extends StatelessWidget {
                   const SizedBox(width: 24),
                   // Text content
                   Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          label,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          description,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: const Color(0xFF6C757D)),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                    child: Text(
+                      label,
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                   const SizedBox(width: 12),

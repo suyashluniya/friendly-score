@@ -22,11 +22,11 @@ class JumpingScreen extends StatelessWidget {
     if (currentMode == ModeService.mountedSports) {
       appBarTitle = 'Mounted Sports';
       titleText = 'Choose Race Type';
-      subtitleText = 'Select the race type for your event';
+      subtitleText = '';
     } else {
       appBarTitle = 'Show Jumping';
       titleText = 'Choose Your Mode';
-      subtitleText = 'Select the jumping mode for your event';
+      subtitleText = '';
     }
 
     return Scaffold(
@@ -84,7 +84,7 @@ class JumpingScreen extends StatelessWidget {
         Flexible(
           child: _JumpOptionButton(
             label: 'Top Score',
-            description: 'Competitive mode with time limits',
+            description: '',
             icon: FontAwesomeIcons.trophy,
             color: const Color(0xFFF59E0B),
             onTap: () => Navigator.pushNamed(
@@ -97,7 +97,7 @@ class JumpingScreen extends StatelessWidget {
         Flexible(
           child: _JumpOptionButton(
             label: 'Normal',
-            description: 'Practice mode for training sessions',
+            description: '',
             icon: FontAwesomeIcons.personRunning,
             color: const Color(0xFF0066FF),
             onTap: () => Navigator.pushNamed(
@@ -117,7 +117,7 @@ class JumpingScreen extends StatelessWidget {
         Flexible(
           child: _JumpOptionButton(
             label: 'Start → Finish',
-            description: 'Simple race from start to finish',
+            description: '',
             icon: FontAwesomeIcons.flagCheckered,
             color: const Color(0xFF10B981),
             onTap: () {
@@ -143,7 +143,7 @@ class JumpingScreen extends StatelessWidget {
         Flexible(
           child: _JumpOptionButton(
             label: 'Start → Verify → Finish',
-            description: 'Race with verification checkpoint',
+            description: '',
             icon: FontAwesomeIcons.listCheck,
             color: const Color(0xFF8B5CF6),
             onTap: () {
@@ -214,26 +214,12 @@ class _JumpOptionButton extends StatelessWidget {
               const SizedBox(width: 24),
               // Text content
               Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF6C757D),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
               const SizedBox(width: 12),
