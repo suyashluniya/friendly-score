@@ -219,12 +219,9 @@ class _JumpOptionButton extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
-                  textAlign: TextAlign.center,
+                  textAlign: TextAlign.left,
                 ),
               ),
-              const SizedBox(width: 12),
-              // Arrow icon
-              Icon(Icons.arrow_forward_ios, size: 20, color: color),
             ],
           ),
         ),
