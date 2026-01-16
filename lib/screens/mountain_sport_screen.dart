@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class MountainSportScreen extends StatelessWidget {
   const MountainSportScreen({super.key});
@@ -9,49 +10,36 @@ class MountainSportScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mounted Sports'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.black,
       ),
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(32.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(32),
+                  width: 120,
+                  height: 120,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
+                    color: const Color(0xFF0066FF).withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.terrain,
-                    size: 100,
-                    color: Colors.black,
+                    size: 64,
+                    color: Color(0xFF0066FF),
                   ),
-                ),
+                ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
                 const SizedBox(height: 40),
                 Text(
                   'Mounted Sports Mode',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 40),
-                  child: Text(
-                    'Track performance in equestrian and mounted sports events',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black87,
-                    ),
+                    fontWeight: FontWeight.bold,
                   ),
-                ),
+                  textAlign: TextAlign.center,
+                ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2),
+                const SizedBox(height: 16),
               ],
             ),
           ),

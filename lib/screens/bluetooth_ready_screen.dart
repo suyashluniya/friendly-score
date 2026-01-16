@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/bluetooth_service.dart';
+import '../utils/command_protocol.dart';
+import '../utils/logger.dart';
 import 'active_race_screen.dart';
 
 class BluetoothReadyScreen extends StatefulWidget {
@@ -14,10 +16,9 @@ class BluetoothReadyScreen extends StatefulWidget {
     required this.maxMinutes,
     required this.maxSeconds,
     required this.riderName,
-    required this.eventName,
-    required this.horseName,
-    required this.horseId,
-    required this.additionalDetails,
+    required this.riderNumber,
+    required this.photoPath,
+    this.raceType,
   });
 
   static const routeName = '/bluetooth-ready';
@@ -29,10 +30,9 @@ class BluetoothReadyScreen extends StatefulWidget {
   final int maxMinutes;
   final int maxSeconds;
   final String riderName;
-  final String eventName;
-  final String horseName;
-  final String horseId;
-  final String additionalDetails;
+  final String riderNumber;
+  final String photoPath;
+  final String? raceType; // 'startFinish' or 'startVerifyFinish' for Mounted Sports
 
   @override
   State<BluetoothReadyScreen> createState() => _BluetoothReadyScreenState();
@@ -49,17 +49,20 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
 
   void _listenForStartSignal() {
     final btService = BluetoothService();
+    
     _bluetoothSubscription = btService.messageStream.listen((message) {
-      print('📨 Ready screen received: $message');
-
-      if (message.contains('START')) {
-        print('🏁 START signal received - Starting race!');
+      // Check if it's a START command (just the keyword 'start')
+      if (CommandProtocol.isStartCommand(message)) {
+        Logger.info('✅ START command received: $message', tag: 'BluetoothReady');
         _startRace();
       }
     });
   }
 
-  void _startRace() {
+  void _startRace() async {
+    // Note: Time command is now sent earlier in the flow (rider_details_screen and timer_start_screen)
+    // No need to send it again here for Top Score mode
+    
     if (mounted) {
       Navigator.of(context).pushReplacementNamed(
         ActiveRaceScreen.routeName,
@@ -68,11 +71,98 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
           'maxMinutes': widget.maxMinutes,
           'maxSeconds': widget.maxSeconds,
           'riderName': widget.riderName,
-          'eventName': widget.eventName,
-          'horseName': widget.horseName,
-          'horseId': widget.horseId,
-          'additionalDetails': widget.additionalDetails,
+          'riderNumber': widget.riderNumber,
+          'photoPath': widget.photoPath,
+          'raceType': widget.raceType,
         },
+      );
+    }
+  }
+
+  bool get _isMountedSports => widget.raceType != null;
+
+  Future<void> _showDisarmConfirmation() async {
+    final bool? shouldDisarm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Disarm Device'),
+          content: const Text(
+            'Do you really want to disarm the device? This will stop the system and return to home.',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Disarm'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDisarm == true) {
+      await _disarmDevice();
+    }
+  }
+
+  Future<void> _disarmDevice() async {
+    final btService = BluetoothService();
+
+    bool sent = await btService.sendData('d1,e0');
+    if (sent && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(child: Text('Device has been manually disarmed')),
+            ],
+          ),
+          backgroundColor: Colors.green.shade600,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text('Failed to disarm device. Please try again.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
     }
   }
@@ -86,20 +176,7 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      appBar: AppBar(
-        backgroundColor: Colors.grey.shade100,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        title: Text(
-          'System Armed',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('System Armed')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -107,18 +184,17 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
             children: [
               const SizedBox(height: 40),
 
-              // Success Animation
               Container(
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
-                      color: Colors.green.shade100,
+                      color: const Color(0xFF10B981).withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.bluetooth_connected,
-                      color: Colors.green.shade600,
-                      size: 60,
+                      color: Color(0xFF10B981),
+                      size: 64,
                     ),
                   )
                   .animate()
@@ -127,51 +203,32 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
 
               const SizedBox(height: 40),
 
-              // Main Status Message
               Text(
                     'Application Armed!',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green.shade700,
-                    ),
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF10B981),
+                        ),
                     textAlign: TextAlign.center,
                   )
                   .animate()
                   .fadeIn(duration: 600.ms, delay: 200.ms)
                   .slideY(begin: 0.2),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // Detailed Status
               Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 15,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFE5E7EB),
+                        width: 1.5,
+                      ),
                     ),
                     child: Column(
                       children: [
-                        Text(
-                          'The application is armed with the hardware and the rider can now start the race',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w500,
-                                height: 1.5,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Connection Status
                         Row(
                           children: [
                             Container(
@@ -230,73 +287,75 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
 
               const SizedBox(height: 40),
 
-              // Rider Info Summary
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: const Color(0xFF0066FF).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(
+                    color: const Color(0xFF0066FF).withOpacity(0.2),
+                    width: 1.5,
+                  ),
                 ),
                 child: Column(
                   children: [
                     Text(
                       'Race Setup Summary',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800,
-                      ),
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0066FF),
+                          ),
                     ),
                     const SizedBox(height: 12),
-                    _buildSummaryRow('Rider', widget.riderName),
-                    _buildSummaryRow('Horse', '${widget.horseName} (${widget.horseId})'),
-                    _buildSummaryRow('Event', widget.eventName),
-                    _buildSummaryRow(
-                      'Time',
-                      _formatTime(
-                        widget.selectedHours,
-                        widget.selectedMinutes,
-                        widget.selectedSeconds,
+                    if (widget.riderName.isNotEmpty)
+                      _buildSummaryRow('Rider', widget.riderName),
+                    if (widget.riderNumber.isNotEmpty)
+                      _buildSummaryRow('Number', widget.riderNumber),
+                    if (_isMountedSports) ...[
+                      _buildSummaryRow(
+                        'Race Type',
+                        widget.raceType == 'startVerifyFinish'
+                            ? 'Start → Verify → Finish'
+                            : 'Start → Finish',
                       ),
-                    ),
+                      _buildSummaryRow('Timer', 'Starts from 0:00:00'),
+                    ] else
+                      _buildSummaryRow(
+                        'Time',
+                        _formatTime(
+                          widget.selectedHours,
+                          widget.selectedMinutes,
+                          widget.selectedSeconds,
+                        ),
+                      ),
                   ],
                 ),
               ).animate().fadeIn(duration: 600.ms, delay: 600.ms),
 
               const SizedBox(height: 32),
 
-              // Ready Indicator
               Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,
-                      vertical: 16,
+                      vertical: 14,
                     ),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.green.shade400, Colors.green.shade600],
-                      ),
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.green.shade400.withOpacity(0.4),
-                          blurRadius: 15,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      color: const Color(0xFF10B981),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, color: Colors.white, size: 24),
+                        const Icon(
+                          Icons.check_circle_outline,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           'SYSTEM READY',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                              ),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(color: Colors.white, letterSpacing: 1),
                         ),
                       ],
                     ),
@@ -305,7 +364,42 @@ class _BluetoothReadyScreenState extends State<BluetoothReadyScreen> {
                   .fadeIn(duration: 600.ms, delay: 800.ms)
                   .scale(curve: Curves.elasticOut),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 32),
+
+              GestureDetector(
+                onTap: _showDisarmConfirmation,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.red, width: 2),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.power_settings_new,
+                        color: Colors.red,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'DISARM DEVICE',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: Colors.red,
+                              letterSpacing: 1,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ).animate().fadeIn(duration: 600.ms, delay: 1000.ms),
+
+              const SizedBox(height: 24),
             ],
           ),
         ),

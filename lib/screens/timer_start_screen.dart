@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'bluetooth_ready_screen.dart';
 import 'bluetooth_failed_screen.dart';
 import '../services/bluetooth_service.dart';
+import '../services/mode_service.dart';
+import '../utils/command_protocol.dart';
+import '../utils/logger.dart';
 
 class TimerStartScreen extends StatefulWidget {
   const TimerStartScreen({
@@ -14,10 +16,9 @@ class TimerStartScreen extends StatefulWidget {
     required this.maxMinutes,
     required this.maxSeconds,
     required this.riderName,
-    required this.eventName,
-    required this.horseName,
-    required this.horseId,
-    required this.additionalDetails,
+    required this.riderNumber,
+    required this.photoPath,
+    this.raceType,
   });
 
   static const routeName = '/timer-start';
@@ -29,10 +30,9 @@ class TimerStartScreen extends StatefulWidget {
   final int maxMinutes;
   final int maxSeconds;
   final String riderName;
-  final String eventName;
-  final String horseName;
-  final String horseId;
-  final String additionalDetails;
+  final String riderNumber;
+  final String photoPath;
+  final String? raceType; // 'startFinish' or 'startVerifyFinish' for Mounted Sports
 
   @override
   State<TimerStartScreen> createState() => _TimerStartScreenState();
@@ -46,7 +46,6 @@ class _TimerStartScreenState extends State<TimerStartScreen>
   late AnimationController _pulseController;
   late AnimationController _glowController;
 
-  // Target Bluetooth device name - customize this as needed
   static const String targetBluetoothDevice = 'ESP32-BT-Client';
 
   @override
@@ -66,8 +65,22 @@ class _TimerStartScreenState extends State<TimerStartScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reset connection state when returning to this screen
-    _resetConnectionState();
+    _checkExistingConnection();
+  }
+
+  Future<void> _checkExistingConnection() async {
+    final btService = BluetoothService();
+
+    if (btService.isConnected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed(
+            BluetoothReadyScreen.routeName,
+            arguments: _buildArgs(),
+          );
+        }
+      });
+    }
   }
 
   @override
@@ -77,16 +90,22 @@ class _TimerStartScreenState extends State<TimerStartScreen>
     super.dispose();
   }
 
-  void _resetConnectionState() {
-    if (mounted) {
-      setState(() {
-        _isPressed = false;
-        _isConnecting = false;
-        _isConnected = false;
-      });
-      _glowController.reset();
-    }
+  Map<String, dynamic> _buildArgs() {
+    return {
+      'selectedHours': widget.selectedHours,
+      'selectedMinutes': widget.selectedMinutes,
+      'selectedSeconds': widget.selectedSeconds,
+      'maxHours': widget.maxHours,
+      'maxMinutes': widget.maxMinutes,
+      'maxSeconds': widget.maxSeconds,
+      'riderName': widget.riderName,
+      'riderNumber': widget.riderNumber,
+      'photoPath': widget.photoPath,
+      'raceType': widget.raceType,
+    };
   }
+
+  bool get _isMountedSports => widget.raceType != null;
 
   void _onStartPressed() async {
     setState(() {
@@ -96,33 +115,18 @@ class _TimerStartScreenState extends State<TimerStartScreen>
     _glowController.forward();
 
     try {
-      // Simulate Bluetooth connection check
       await _checkBluetoothConnection();
 
       if (_isConnected) {
-        // Navigate to Bluetooth ready screen
         Navigator.of(context).pushNamed(
           BluetoothReadyScreen.routeName,
-          arguments: {
-            'selectedHours': widget.selectedHours,
-            'selectedMinutes': widget.selectedMinutes,
-            'selectedSeconds': widget.selectedSeconds,
-            'maxHours': widget.maxHours,
-            'maxMinutes': widget.maxMinutes,
-            'maxSeconds': widget.maxSeconds,
-            'riderName': widget.riderName,
-            'eventName': widget.eventName,
-            'horseName': widget.horseName,
-            'horseId': widget.horseId,
-            'additionalDetails': widget.additionalDetails,
-          },
+          arguments: _buildArgs(),
         );
       }
     } catch (e) {
       _showConnectionError(e.toString());
     }
 
-    // Reset after animation
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {
@@ -137,25 +141,19 @@ class _TimerStartScreenState extends State<TimerStartScreen>
   Future<void> _checkBluetoothConnection() async {
     final btService = BluetoothService();
 
-    // Request Bluetooth permissions first (Android 12+)
     bool permissionsGranted = await btService.requestBluetoothPermissions();
     if (!permissionsGranted) {
       throw Exception('Bluetooth permissions are required. Please grant permissions in settings.');
     }
 
-    // Check if Bluetooth is enabled
     bool isEnabled = await btService.isBluetoothEnabled();
     if (!isEnabled) {
-      print('🔴 Bluetooth is disabled, requesting to enable...');
       bool enabled = await btService.requestEnable();
       if (!enabled) {
         throw Exception('Bluetooth is not enabled. Please turn on Bluetooth.');
       }
     }
 
-    print('🔵 Bluetooth is enabled');
-
-    // Find the target device
     var device = await btService.findDeviceByName(targetBluetoothDevice);
     if (device == null) {
       throw Exception(
@@ -163,7 +161,6 @@ class _TimerStartScreenState extends State<TimerStartScreen>
       );
     }
 
-    // Connect to device
     bool connected = await btService.connectToDevice(device);
     if (!connected) {
       throw Exception('Failed to connect to $targetBluetoothDevice');
@@ -173,61 +170,34 @@ class _TimerStartScreenState extends State<TimerStartScreen>
       _isConnected = true;
     });
 
-    // Listen to messages from ESP32
-    btService.messageStream.listen((message) {
-      print('🎯 Message from ESP32: $message');
-      // Handle the message here (e.g., start timer, stop timer, etc.)
-      _handleArduinoMessage(message);
-    });
-
-    // Send a test beacon signal
     await _sendBeaconSignal();
   }
 
   Future<void> _sendBeaconSignal() async {
     final btService = BluetoothService();
-    bool sent = await btService.sendData('HELLO');
-    if (sent) {
-      print('✅ Beacon signal sent successfully to ESP32');
+    final modeService = ModeService();
+    final eventCode = modeService.getEventCode();
+    
+    // For Top Score mode, include the time allowed in seconds
+    String command;
+    if (!_isMountedSports && modeService.isTopScoreMode()) {
+      final timeAllowedSeconds = (widget.selectedHours * 3600) + 
+                                (widget.selectedMinutes * 60) + 
+                                widget.selectedSeconds;
+      command = CommandProtocol.buildStartCommand(eventCode, timeInSeconds: timeAllowedSeconds);
     } else {
-      print('❌ Failed to send beacon signal');
+      command = CommandProtocol.buildStartCommand(eventCode);
     }
-  }
-
-  void _handleArduinoMessage(String message) {
-    // Handle different messages from ESP32
-    print('🔔 Processing message: $message');
-
-    if (message.contains('START')) {
-      print('▶️ Received START signal from ESP32');
-      // TODO: Start your timer logic here
-    } else if (message.contains('STOP')) {
-      print('⏹️ Received STOP signal from ESP32');
-      // TODO: Stop your timer logic here
-    } else if (message.contains('ACK')) {
-      print('✅ ESP32 acknowledged connection');
-    } else {
-      print('📬 Custom message: $message');
-      // Handle other custom messages
-    }
+    
+    Logger.info('📡 Sending START beacon signal: $command', tag: 'TimerStart');
+    await btService.sendData(command);
   }
 
   void _showConnectionError(String error) {
-    // Navigate to dedicated error screen instead of just showing snackbar
     Navigator.of(context).pushNamed(
       BluetoothFailedScreen.routeName,
       arguments: {
-        'selectedHours': widget.selectedHours,
-        'selectedMinutes': widget.selectedMinutes,
-        'selectedSeconds': widget.selectedSeconds,
-        'maxHours': widget.maxHours,
-        'maxMinutes': widget.maxMinutes,
-        'maxSeconds': widget.maxSeconds,
-        'riderName': widget.riderName,
-        'eventName': widget.eventName,
-        'horseName': widget.horseName,
-        'horseId': widget.horseId,
-        'additionalDetails': widget.additionalDetails,
+        ..._buildArgs(),
         'errorMessage': error,
       },
     );
@@ -236,19 +206,8 @@ class _TimerStartScreenState extends State<TimerStartScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade100,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        title: Text(
-          'Ready to Start',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        centerTitle: true,
+        title: const Text('Ready to Start'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -260,78 +219,86 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 15,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFE5E7EB),
+                    width: 1.5,
+                  ),
                 ),
                 child: Column(
                   children: [
-                    _buildInfoRow(Icons.person, 'Rider', widget.riderName),
-                    const Divider(height: 20),
-                    _buildInfoRow(Icons.event, 'Event', widget.eventName),
-                    const Divider(height: 20),
-                    _buildInfoRow(
-                      Icons.pets,
-                      'Horse',
-                      '${widget.horseName} (${widget.horseId})',
-                    ),
-                    const Divider(height: 20),
-                    _buildInfoRow(
-                      Icons.timer,
-                      'Time Set',
-                      _formatTime(
-                        widget.selectedHours,
-                        widget.selectedMinutes,
-                        widget.selectedSeconds,
+                    if (widget.riderName.isNotEmpty) ...[
+                      _buildInfoRow(Icons.person, 'Rider', widget.riderName),
+                      const Divider(height: 20),
+                    ],
+                    if (widget.riderNumber.isNotEmpty) ...[
+                      _buildInfoRow(Icons.numbers, 'Number', widget.riderNumber),
+                      const Divider(height: 20),
+                    ],
+                    if (_isMountedSports) ...[
+                      _buildInfoRow(
+                        Icons.flag_rounded,
+                        'Race Type',
+                        widget.raceType == 'startVerifyFinish'
+                            ? 'Start → Verify → Finish'
+                            : 'Start → Finish',
                       ),
-                    ),
-                    _buildInfoRow(
-                      Icons.schedule,
-                      'Max Time',
-                      _formatTime(
-                        widget.maxHours,
-                        widget.maxMinutes,
-                        widget.maxSeconds,
+                      const Divider(height: 20),
+                      _buildInfoRow(
+                        Icons.timer,
+                        'Timer',
+                        'Starts from 0:00:00',
                       ),
-                    ),
+                    ] else ...[
+                      _buildInfoRow(
+                        Icons.timer,
+                        'Time Set',
+                        _formatTime(
+                          widget.selectedHours,
+                          widget.selectedMinutes,
+                          widget.selectedSeconds,
+                        ),
+                      ),
+                      const Divider(height: 20),
+                      _buildInfoRow(
+                        Icons.schedule,
+                        'Max Time',
+                        _formatTime(
+                          widget.maxHours,
+                          widget.maxMinutes,
+                          widget.maxSeconds,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
-              ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2),
+              ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
-              // Instructions
               Text(
                 _isConnected
                     ? 'Hardware Connected - Verifying...'
                     : _isConnecting
-                    ? 'Connecting to ESP32-BT-Client...'
-                    : 'Press to connect to ESP32 timing system',
+                        ? 'Connecting to ESP32-BT-Client...'
+                        : 'Press to connect to ESP32 timing system',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
+                      color: Colors.grey.shade700,
+                    ),
                 textAlign: TextAlign.center,
-              ).animate().fadeIn(duration: 800.ms, delay: 400.ms),
+              ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 48),
 
-              // Circular Start Button (Car Push Button Style)
               AnimatedBuilder(
                 animation: _pulseController,
                 builder: (context, child) {
                   return Container(
-                    width: 200,
-                    height: 200,
+                    width: 180,
+                    height: 180,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       boxShadow: [
-                        // Outer glow effect
                         BoxShadow(
                           color: Colors.green.shade400.withOpacity(
                             0.3 + (0.2 * _pulseController.value),
@@ -339,11 +306,10 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                           blurRadius: 30 + (20 * _pulseController.value),
                           spreadRadius: 5 + (10 * _pulseController.value),
                         ),
-                        // Inner shadow for depth
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
@@ -354,8 +320,8 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                           onTapDown: (_) => _onStartPressed(),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 150),
-                            width: 200,
-                            height: 200,
+                            width: 180,
+                            height: 180,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: RadialGradient(
@@ -374,14 +340,14 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                               ),
                               border: Border.all(
                                 color: Colors.green.shade200,
-                                width: 4,
+                                width: 3,
                               ),
                               boxShadow: _isPressed
                                   ? [
                                       BoxShadow(
                                         color: Colors.green.shade600
                                             .withOpacity(0.6),
-                                        blurRadius: 30,
+                                        blurRadius: 25,
                                         spreadRadius: 5,
                                       ),
                                     ]
@@ -390,29 +356,30 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                             child: Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.play_arrow,
-                                    size: 60,
+                                    Icons.bluetooth,
+                                    size: 48,
                                     color: Colors.white,
                                     shadows: [
                                       Shadow(
                                         color: Colors.black.withOpacity(0.3),
                                         blurRadius: 10,
-                                        offset: const Offset(0, 4),
+                                        offset: const Offset(0, 3),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 12),
                                   Text(
                                     _isConnecting ? 'CONNECTING' : 'CONNECT',
                                     style: Theme.of(context)
                                         .textTheme
-                                        .headlineSmall
+                                        .titleLarge
                                         ?.copyWith(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
-                                          letterSpacing: 2,
+                                          letterSpacing: 1.5,
                                           shadows: [
                                             Shadow(
                                               color: Colors.black.withOpacity(
@@ -433,62 +400,60 @@ class _TimerStartScreenState extends State<TimerStartScreen>
                     ),
                   );
                 },
-              ).animate().scale(
-                duration: 800.ms,
-                delay: 600.ms,
-                curve: Curves.elasticOut,
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 32),
 
-              // Status indicator
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
+                  horizontal: 20,
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.orange.shade200),
+                  color: const Color(0xFFF59E0B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFF59E0B).withOpacity(0.3),
+                    width: 1.5,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       _isConnected
-                          ? Icons.check_circle
+                          ? Icons.check_circle_outline
                           : _isConnecting
-                          ? Icons.sync
-                          : Icons.pending,
+                              ? Icons.sync
+                              : Icons.pending_outlined,
                       color: _isConnected
-                          ? Colors.green.shade600
+                          ? const Color(0xFF10B981)
                           : _isConnecting
-                          ? Colors.blue.shade600
-                          : Colors.orange.shade600,
-                      size: 18,
+                              ? const Color(0xFF0066FF)
+                              : const Color(0xFFF59E0B),
+                      size: 20,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Text(
                       _isConnecting
                           ? 'Connecting to Hardware'
                           : _isConnected
-                          ? 'Hardware Connected'
-                          : 'Ready to Connect',
+                              ? 'Hardware Connected'
+                              : 'Ready to Connect',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: _isConnected
-                            ? Colors.green.shade700
-                            : _isConnecting
-                            ? Colors.blue.shade700
-                            : Colors.orange.shade700,
-                        fontWeight: FontWeight.w600,
-                      ),
+                            color: _isConnected
+                                ? const Color(0xFF10B981)
+                                : _isConnecting
+                                    ? const Color(0xFF0066FF)
+                                    : const Color(0xFFF59E0B),
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
                   ],
                 ),
-              ).animate().fadeIn(duration: 600.ms, delay: 800.ms),
+              ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -500,24 +465,23 @@ class _TimerStartScreenState extends State<TimerStartScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 20, color: Colors.grey.shade600),
+          Icon(icon, size: 20, color: const Color(0xFF6C757D)),
           const SizedBox(width: 12),
           Text(
             '$label:',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
-            ),
+                  color: Colors.grey.shade600,
+                ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.black87,
-                fontWeight: FontWeight.w600,
-              ),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
               textAlign: TextAlign.end,
             ),
           ),
