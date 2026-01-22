@@ -411,7 +411,7 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
 
                     // Header
                     Text(
-                      'Set Maximum Time',
+                      'Set Normal Time',
                       style: GoogleFonts.poppins(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
@@ -524,7 +524,7 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Maximum Time',
+                                        'Normal Time',
                                         style: GoogleFonts.poppins(
                                           color: AppColors.textSecondary,
                                           fontSize: 13,
