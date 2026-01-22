@@ -456,11 +456,19 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     _timer.cancel();
 
     Map<String, int> timeData;
+    bool finishLineNotCrossed = false;
 
     // Try to parse time from hardware message (format: stop,HH:MM:SS:mmm or d1,e#,HH:MM:SS:mmm)
     if (stopMessage != null && stopMessage.contains(',')) {
       timeData = _parseTimeFromHardware(stopMessage);
-      if (timeData['totalSeconds']! > 0) {
+
+      // Check if hardware explicitly sent zero time (00:00:00:000)
+      // This indicates the rider did not cross the finish line
+      if (timeData['totalSeconds'] == 0 && timeData['milliseconds'] == 0) {
+        Logger.info('⚠️ Hardware reported zero time - Finish line not crossed', tag: 'ActiveRace');
+        finishLineNotCrossed = true;
+        // Keep the zero time data as-is
+      } else if (timeData['totalSeconds']! > 0 || timeData['milliseconds']! > 0) {
         Logger.debug(
           '✅ Using HARDWARE time: ${timeData['hours']}h ${timeData['minutes']}m ${timeData['seconds']}s ${timeData['milliseconds']}ms',
           tag: 'ActiveRace',
@@ -479,10 +487,21 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
     // Determine if race was successful
     // For Mounted Sports (no max time), race is always successful when finished
     // For Show Jumping, check if time is within limit
-    final isSuccess = _isMountedSports || timeData['totalSeconds']! <= _maxTimeSeconds;
+    // Finish line not crossed is never a success
+    final isSuccess = !finishLineNotCrossed && (_isMountedSports || timeData['totalSeconds']! <= _maxTimeSeconds);
+
+    // Determine race status
+    String raceStatus;
+    if (finishLineNotCrossed) {
+      raceStatus = 'finishLineNotCrossed';
+    } else if (isSuccess) {
+      raceStatus = 'finished';
+    } else {
+      raceStatus = 'timeExceeded';
+    }
 
     Logger.info(
-      '🏁 Race result: ${isSuccess ? "COMPLETED" : "TIME EXCEEDED"} - Elapsed: ${timeData['totalSeconds']}s, Max: ${_maxTimeSeconds}s',
+      '🏁 Race result: ${finishLineNotCrossed ? "FINISH LINE NOT CROSSED" : (isSuccess ? "COMPLETED" : "TIME EXCEEDED")} - Elapsed: ${timeData['totalSeconds']}s, Max: ${_maxTimeSeconds}s',
       tag: 'ActiveRace',
     );
 
@@ -501,7 +520,7 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
           'riderNumber': widget.riderNumber,
           'photoPath': widget.photoPath,
           'isSuccess': isSuccess,
-          'raceStatus': isSuccess ? 'finished' : 'timeExceeded',
+          'raceStatus': raceStatus,
         },
       );
     }
@@ -664,21 +683,23 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
 
   String _formatTime(int seconds) {
     int displaySeconds = seconds;
-    
-    // Top Score Mode: Show countdown in Phase 1
+    String prefix = '';
+
+    // Top Score Mode: Show countdown in Phase 1 with negative sign
     if (_isTopScoreMode && _isInCountdownPhase) {
       displaySeconds = _timeAllowedSeconds - seconds;
       if (displaySeconds < 0) displaySeconds = 0;
+      prefix = '-'; // Show negative sign during countdown phase
     }
-    
+
     int hours = displaySeconds ~/ 3600;
     int minutes = (displaySeconds % 3600) ~/ 60;
     int secs = displaySeconds % 60;
 
     if (hours > 0) {
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+      return '$prefix${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
     } else {
-      return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+      return '$prefix${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
     }
   }
 
@@ -932,75 +953,77 @@ class _ActiveRaceScreenState extends State<ActiveRaceScreen>
           ),
         ),
         const SizedBox(width: 12),
-        // Finish Race Button
-        Expanded(
-          child: GestureDetector(
-            onTap: _isWaitingForFinishTime ? null : _showFinishRaceConfirmation,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                gradient: _isWaitingForFinishTime
-                    ? const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
-                      )
-                    : const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF10B981), Color(0xFF047857)],
+        // Finish Race Button - Hidden in Top Score mode (race ends via hardware signal or time expiry)
+        if (!_isTopScoreMode) ...[
+          Expanded(
+            child: GestureDetector(
+              onTap: _isWaitingForFinishTime ? null : _showFinishRaceConfirmation,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: _isWaitingForFinishTime
+                      ? const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
+                        )
+                      : const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF10B981), Color(0xFF047857)],
+                        ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_isWaitingForFinishTime
+                          ? const Color(0xFFF59E0B)
+                          : const Color(0xFF10B981)).withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
                       ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: (_isWaitingForFinishTime 
-                        ? const Color(0xFFF59E0B) 
-                        : const Color(0xFF10B981)).withOpacity(0.4),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: _isWaitingForFinishTime
-                        ? const SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      child: _isWaitingForFinishTime
+                          ? const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.flag_rounded,
+                              color: Colors.white,
+                              size: 28,
                             ),
-                          )
-                        : const Icon(
-                            Icons.flag_rounded,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _isWaitingForFinishTime ? 'WAITING...' : 'FINISH',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      _isWaitingForFinishTime ? 'WAITING...' : 'FINISH',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
+          const SizedBox(width: 12),
+        ],
         // Disqualify Button
         Expanded(
           child: GestureDetector(

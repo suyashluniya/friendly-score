@@ -50,6 +50,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   bool get _isStoppedRace => widget.raceStatus == 'stopped';
   bool get _isDisqualifiedRace => widget.raceStatus == 'disqualified';
   bool get _isFinishedRace => widget.raceStatus == 'finished';
+  bool get _isFinishLineNotCrossed => widget.raceStatus == 'finishLineNotCrossed';
 
   @override
   void initState() {
@@ -150,7 +151,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
   }
 
   Color _getResultColor() {
-    if (_isStoppedRace || _isDisqualifiedRace) {
+    if (_isStoppedRace || _isDisqualifiedRace || _isFinishLineNotCrossed) {
       return const Color(0xFFEF4444);
     } else if (widget.isSuccess || _isFinishedRace) {
       return const Color(0xFF10B981);
@@ -164,6 +165,8 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
       return Icons.cancel;
     } else if (_isStoppedRace) {
       return Icons.stop_circle;
+    } else if (_isFinishLineNotCrossed) {
+      return Icons.block;
     } else if (widget.isSuccess || _isFinishedRace) {
       return Icons.check_circle;
     } else {
@@ -176,6 +179,8 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
       return 'Race Disqualified';
     } else if (_isStoppedRace) {
       return 'Race Stopped';
+    } else if (_isFinishLineNotCrossed) {
+      return 'Finish line not crossed';
     } else if (_isFinishedRace || widget.isSuccess) {
       return 'Race Completed!';
     } else {
@@ -349,7 +354,7 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Time Taken',
+                      _isFinishLineNotCrossed ? 'Result' : 'Time Taken',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -357,10 +362,12 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                           ),
                     ),
                     const SizedBox(height: 12),
-                    Column(
-                      children: [
-                        Text(
-                          _formatTimeWithMilliseconds(),
+                    if (_isFinishLineNotCrossed)
+                      // Show descriptive message instead of zero time
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'N/A',
                           style: Theme.of(context).textTheme.displayLarge?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -374,12 +381,31 @@ class _RaceResultsScreenState extends State<RaceResultsScreen> {
                                 ],
                               ),
                         ),
-                        const SizedBox(height: 8),
-                        _buildTimeLabels(),
-                      ],
-                    ),
-                    // Only show max time for Show Jumping mode (when maxSeconds > 0)
-                    if (widget.maxSeconds > 0) ...[
+                      )
+                    else
+                      Column(
+                        children: [
+                          Text(
+                            _formatTimeWithMilliseconds(),
+                            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 42,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildTimeLabels(),
+                        ],
+                      ),
+                    // Only show max time for Show Jumping mode (when maxSeconds > 0) and when finish line was crossed
+                    if (widget.maxSeconds > 0 && !_isFinishLineNotCrossed) ...[
                       const SizedBox(height: 8),
                       Text(
                         'Max: ${_formatTime(widget.maxSeconds)}',

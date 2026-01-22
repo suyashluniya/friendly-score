@@ -56,6 +56,19 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
     super.dispose();
   }
 
+  Map<String, int> _calculateMaxTime() {
+    final totalSeconds =
+        (_selectedHours * 3600) + (_selectedMinutes * 60) + _selectedSeconds;
+    final doubledSeconds = totalSeconds * 2;
+
+    final maxHours = doubledSeconds ~/ 3600;
+    final remainingSeconds = doubledSeconds % 3600;
+    final maxMinutes = remainingSeconds ~/ 60;
+    final maxSeconds = remainingSeconds % 60;
+
+    return {'hours': maxHours, 'minutes': maxMinutes, 'seconds': maxSeconds};
+  }
+
   String _formatTimeDigital(int hours, int minutes, int seconds) {
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
@@ -90,6 +103,9 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
     }
 
     HapticFeedback.mediumImpact();
+
+    // Calculate max time (double of time allowed, same as Top Score mode)
+    final maxTime = _calculateMaxTime();
 
     final confirmed = await showModalBottomSheet<bool>(
           context: context,
@@ -161,13 +177,23 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
                       child: Column(
                         children: [
                           _buildConfirmRow(
-                            'Maximum Time',
+                            'Time Allowed',
                             _formatTimeDigital(
                               _selectedHours,
                               _selectedMinutes,
                               _selectedSeconds,
                             ),
                             AppColors.primary,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildConfirmRow(
+                            'Maximum Time',
+                            _formatTimeDigital(
+                              maxTime['hours']!,
+                              maxTime['minutes']!,
+                              maxTime['seconds']!,
+                            ),
+                            AppColors.error,
                           ),
                           const SizedBox(height: 16),
                           Container(
@@ -189,7 +215,7 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    'Normal mode: Time set is the maximum allowed',
+                                    'Normal mode uses same time settings as Top Score',
                                     style: GoogleFonts.poppins(
                                       color: AppColors.textSecondary,
                                       fontSize: 12,
@@ -282,9 +308,9 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
         'selectedHours': _selectedHours,
         'selectedMinutes': _selectedMinutes,
         'selectedSeconds': _selectedSeconds,
-        'maxHours': _selectedHours,
-        'maxMinutes': _selectedMinutes,
-        'maxSeconds': _selectedSeconds,
+        'maxHours': maxTime['hours']!,
+        'maxMinutes': maxTime['minutes']!,
+        'maxSeconds': maxTime['seconds']!,
       },
     );
   }
