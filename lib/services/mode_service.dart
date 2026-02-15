@@ -14,6 +14,11 @@ class ModeService {
   String? _raceType; // 'startFinish' or 'startVerifyFinish' for Mounted Sports
   static const String _modeKey = 'selected_mode';
 
+  // Time value storage for Normal mode
+  int? _normalModeHours;
+  int? _normalModeMinutes;
+  int? _normalModeSeconds;
+
   // Mode constants
   static const String showJumping = 'SHOW_JUMPING';
   static const String mountedSports = 'MOUNTED_SPORTS';
@@ -145,6 +150,26 @@ class ModeService {
   // Check if race type is Start → Verify → Finish
   bool isStartVerifyFinishMode() {
     return _raceType == startVerifyFinish;
+  }
+
+  // Store time for Normal mode
+  void setNormalModeTime(int hours, int minutes, int seconds) {
+    _normalModeHours = hours;
+    _normalModeMinutes = minutes;
+    _normalModeSeconds = seconds;
+    Logger.info('Normal mode time stored: $hours:$minutes:$seconds', tag: 'ModeService');
+  }
+
+  // Get time for Normal mode (returns null if not set)
+  Map<String, int>? getNormalModeTime() {
+    if (_normalModeHours != null && _normalModeMinutes != null && _normalModeSeconds != null) {
+      return {
+        'hours': _normalModeHours!,
+        'minutes': _normalModeMinutes!,
+        'seconds': _normalModeSeconds!,
+      };
+    }
+    return null;
   }
 
   /// Get the event code (e0-e3) based on current mode and sub-mode

@@ -96,7 +96,7 @@ class JumpingScreen extends StatelessWidget {
         const SizedBox(height: 24),
         Flexible(
           child: _JumpOptionButton(
-            label: 'Normal',
+            label: 'Normal / Relay',
             description: '',
             icon: FontAwesomeIcons.personRunning,
             color: const Color(0xFF0066FF),

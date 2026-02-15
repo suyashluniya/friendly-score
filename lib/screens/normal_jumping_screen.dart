@@ -43,9 +43,18 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
   @override
   void initState() {
     super.initState();
-    _hoursController = FixedExtentScrollController(initialItem: 0);
-    _minutesController = FixedExtentScrollController(initialItem: 0);
-    _secondsController = FixedExtentScrollController(initialItem: 0);
+    
+    // Try to restore previous time values from ModeService
+    final savedTime = ModeService().getNormalModeTime();
+    if (savedTime != null) {
+      _selectedHours = savedTime['hours']!;
+      _selectedMinutes = savedTime['minutes']!;
+      _selectedSeconds = savedTime['seconds']!;
+    }
+    
+    _hoursController = FixedExtentScrollController(initialItem: _selectedHours);
+    _minutesController = FixedExtentScrollController(initialItem: _selectedMinutes);
+    _secondsController = FixedExtentScrollController(initialItem: _selectedSeconds);
   }
 
   @override
@@ -215,7 +224,7 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    'Normal mode uses same time settings as Top Score',
+                                    'Normal / Relay mode uses same time settings as Top Score',
                                     style: GoogleFonts.poppins(
                                       color: AppColors.textSecondary,
                                       fontSize: 12,
@@ -299,6 +308,9 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
 
     if (!confirmed || !mounted) return;
 
+    // Save time values to ModeService for next rider
+    ModeService().setNormalModeTime(_selectedHours, _selectedMinutes, _selectedSeconds);
+    
     // Set jumping mode to Normal
     ModeService().setJumpingMode(ModeService.normal);
 
@@ -389,7 +401,7 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
                   ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.2),
                   const Spacer(),
                   Text(
-                    'Normal Mode',
+                    'Normal / Relay Mode',
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -411,7 +423,7 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
 
                     // Header
                     Text(
-                      'Set Normal Time',
+                      'Set Normal / Relay Time',
                       style: GoogleFonts.poppins(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
@@ -524,7 +536,7 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Normal Time',
+                                        'Normal / Relay Time',
                                         style: GoogleFonts.poppins(
                                           color: AppColors.textSecondary,
                                           fontSize: 13,
@@ -616,7 +628,7 @@ class _NormalJumpingScreenState extends State<NormalJumpingScreen> {
                           const SizedBox(width: 14),
                           Expanded(
                             child: Text(
-                              'In Normal mode, the time you set is the maximum allowed time for the race.',
+                              'In Normal / Relay mode, the time you set is the maximum allowed time for the race.',
                               style: GoogleFonts.poppins(
                                 color: AppColors.textSecondary,
                                 fontSize: 13,
